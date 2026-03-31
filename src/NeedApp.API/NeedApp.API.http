@@ -1,0 +1,6 @@
+@NeedApp.API_HostAddress = http://localhost:5225
+
+GET {{NeedApp.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

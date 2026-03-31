@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="src/NeedApp.Domain/NeedApp.Domain.csproj" />
+  <Project Path="src/NeedApp.Application/NeedApp.Application.csproj" />
+  <Project Path="src/NeedApp.Infrastructure/NeedApp.Infrastructure.csproj" />
+  <Project Path="src/NeedApp.API/NeedApp.API.csproj" />
+</Solution>
