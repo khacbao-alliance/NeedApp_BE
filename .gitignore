@@ -25,6 +25,8 @@ logs/
 
 appsettings.Local.json
 appsettings.*.local.json
+appsettings.Development.local.json
+appsettings.Development.*.local.json
 .env
 .env.*
 
