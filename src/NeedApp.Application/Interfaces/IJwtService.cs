@@ -4,6 +4,6 @@ namespace NeedApp.Application.Interfaces;
 
 public interface IJwtService
 {
-    string GenerateToken(User user);
-    string? ValidateToken(string token);
+    string GenerateAccessToken(User user);
+    string GenerateRefreshToken();
 }

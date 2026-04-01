@@ -3,43 +3,16 @@ using NeedApp.Domain.Enums;
 
 namespace NeedApp.Domain.Entities;
 
-public class User : BaseEntity
+public class User : AuditableEntity
 {
-    public string FullName { get; private set; } = string.Empty;
-    public string Email { get; private set; } = string.Empty;
-    public string PasswordHash { get; private set; } = string.Empty;
-    public string? PhoneNumber { get; private set; }
-    public string? AvatarUrl { get; private set; }
-    public UserRole Role { get; private set; } = UserRole.User;
-    public bool IsActive { get; private set; } = true;
+    public string Email { get; set; } = default!;
+    public string? Name { get; set; }
+    public UserRole? Role { get; set; }
+    public string? PasswordHash { get; set; }
+    public string? GoogleId { get; set; }
 
-    private readonly List<Need> _needs = [];
-    public IReadOnlyCollection<Need> Needs => _needs.AsReadOnly();
-
-    private User() { }
-
-    public static User Create(string fullName, string email, string passwordHash, UserRole role = UserRole.User)
-    {
-        return new User
-        {
-            FullName = fullName,
-            Email = email,
-            PasswordHash = passwordHash,
-            Role = role
-        };
-    }
-
-    public void Update(string fullName, string? phoneNumber, string? avatarUrl)
-    {
-        FullName = fullName;
-        PhoneNumber = phoneNumber;
-        AvatarUrl = avatarUrl;
-        SetUpdatedAt();
-    }
-
-    public void Deactivate()
-    {
-        IsActive = false;
-        SetUpdatedAt();
-    }
+    public ICollection<ClientUser> ClientUsers { get; set; } = [];
+    public ICollection<Request> AssignedRequests { get; set; } = [];
+    public ICollection<Comment> Comments { get; set; } = [];
+    public ICollection<Notification> Notifications { get; set; } = [];
 }

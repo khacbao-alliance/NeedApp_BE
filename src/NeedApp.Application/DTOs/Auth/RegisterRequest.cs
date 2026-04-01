@@ -1,3 +1,5 @@
+using NeedApp.Domain.Enums;
+
 namespace NeedApp.Application.DTOs.Auth;
 
-public record RegisterRequest(string FullName, string Email, string Password, string ConfirmPassword);
+public record RegisterRequest(string Email, string Password, string? Name, UserRole? Role);

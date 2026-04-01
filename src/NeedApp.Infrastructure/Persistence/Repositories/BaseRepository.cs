@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using NeedApp.Domain.Common;
 using NeedApp.Domain.Interfaces;
+using NeedApp.Infrastructure.Persistence;
 
 namespace NeedApp.Infrastructure.Persistence.Repositories;
 
@@ -18,24 +19,12 @@ public class BaseRepository<T>(AppDbContext context) : IRepository<T> where T : 
     public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
         => await DbSet.Where(predicate).ToListAsync(cancellationToken);
 
-    public async Task<T> AddAsync(T entity, CancellationToken cancellationToken = default)
-    {
-        await DbSet.AddAsync(entity, cancellationToken);
-        return entity;
-    }
+    public async Task AddAsync(T entity, CancellationToken cancellationToken = default)
+        => await DbSet.AddAsync(entity, cancellationToken);
 
-    public Task UpdateAsync(T entity, CancellationToken cancellationToken = default)
-    {
-        DbSet.Update(entity);
-        return Task.CompletedTask;
-    }
+    public void Update(T entity)
+        => DbSet.Update(entity);
 
-    public Task DeleteAsync(T entity, CancellationToken cancellationToken = default)
-    {
-        DbSet.Remove(entity);
-        return Task.CompletedTask;
-    }
-
-    public async Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
-        => await DbSet.AnyAsync(predicate, cancellationToken);
+    public void Remove(T entity)
+        => DbSet.Remove(entity);
 }
