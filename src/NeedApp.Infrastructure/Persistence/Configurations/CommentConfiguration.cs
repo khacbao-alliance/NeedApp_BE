@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NeedApp.Domain.Entities;
-using NeedApp.Domain.Enums;
-using NeedApp.Infrastructure.Persistence.Converters;
 
 namespace NeedApp.Infrastructure.Persistence.Configurations;
 
@@ -17,8 +15,7 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
         builder.Property(x => x.RequestId).HasColumnName("request_id");
         builder.Property(x => x.UserId).HasColumnName("user_id");
         builder.Property(x => x.Content).HasColumnName("content");
-        builder.Property(x => x.Type).HasColumnName("type").HasColumnType("comment_type")
-            .HasConversion(PostgresEnumConverter.ForNullableEnum<CommentType>());
+        builder.Property(x => x.Type).HasColumnName("type");
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
         builder.Property(x => x.IsDeleted).HasColumnName("is_deleted");
 

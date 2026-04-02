@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NeedApp.Domain.Entities;
-using NeedApp.Domain.Enums;
-using NeedApp.Infrastructure.Persistence.Converters;
 
 namespace NeedApp.Infrastructure.Persistence.Configurations;
 
@@ -16,8 +14,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.Id).HasColumnName("id");
         builder.Property(x => x.Email).HasColumnName("email").IsRequired();
         builder.Property(x => x.Name).HasColumnName("name");
-        builder.Property(x => x.Role).HasColumnName("role").HasColumnType("user_role")
-            .HasConversion(PostgresEnumConverter.ForNullableEnum<UserRole>());
+        builder.Property(x => x.Role).HasColumnName("role");
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
         builder.Property(x => x.CreatedBy).HasColumnName("created_by");
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at");

@@ -15,7 +15,7 @@ public class AuthController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(
-            new RegisterCommand(request.Email, request.Password, request.Name, request.Role),
+            new RegisterCommand(request.Email, request.Password, request.Name),
             cancellationToken);
         return Ok(result);
     }

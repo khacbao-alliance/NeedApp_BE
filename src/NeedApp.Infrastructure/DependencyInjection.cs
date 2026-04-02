@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using Npgsql;
 using NeedApp.Application.Interfaces;
 using NeedApp.Domain.Enums;
 using NeedApp.Domain.Interfaces;
@@ -13,6 +12,8 @@ using NeedApp.Infrastructure.Persistence.Interceptors;
 using NeedApp.Infrastructure.Persistence.Repositories;
 using NeedApp.Infrastructure.Services;
 using NeedApp.Infrastructure.Settings;
+using Npgsql;
+using Npgsql.NameTranslation;
 
 namespace NeedApp.Infrastructure;
 
@@ -23,13 +24,15 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("DefaultConnection")!;
 
         var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
-        dataSourceBuilder.MapEnum<UserRole>("user_role");
-        dataSourceBuilder.MapEnum<RequestStatus>("request_status");
-        dataSourceBuilder.MapEnum<MissingInfoStatus>("missing_info_status");
-        dataSourceBuilder.MapEnum<CommentType>("comment_type");
-        dataSourceBuilder.MapEnum<NotificationType>("notification_type");
-        dataSourceBuilder.MapEnum<AuditAction>("audit_action");
+        var nameTranslator = new NpgsqlSnakeCaseNameTranslator();
+        dataSourceBuilder.MapEnum<UserRole>("user_role", nameTranslator);
+        dataSourceBuilder.MapEnum<RequestStatus>("request_status", nameTranslator);
+        dataSourceBuilder.MapEnum<MissingInfoStatus>("missing_info_status", nameTranslator);
+        dataSourceBuilder.MapEnum<CommentType>("comment_type", nameTranslator);
+        dataSourceBuilder.MapEnum<NotificationType>("notification_type", nameTranslator);
+        dataSourceBuilder.MapEnum<AuditAction>("audit_action", nameTranslator);
         var dataSource = dataSourceBuilder.Build();
+        services.AddSingleton(dataSource);
 
         services.AddScoped<AuditInterceptor>();
 

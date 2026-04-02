@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NeedApp.Domain.Entities;
-using NeedApp.Domain.Enums;
-using NeedApp.Infrastructure.Persistence.Converters;
 
 namespace NeedApp.Infrastructure.Persistence.Configurations;
 
@@ -17,8 +15,7 @@ public class MissingInformationConfiguration : IEntityTypeConfiguration<MissingI
         builder.Property(x => x.RequestId).HasColumnName("request_id");
         builder.Property(x => x.Question).HasColumnName("question").IsRequired();
         builder.Property(x => x.Answer).HasColumnName("answer");
-        builder.Property(x => x.Status).HasColumnName("status").HasColumnType("missing_info_status")
-            .HasConversion(PostgresEnumConverter.ForEnum<MissingInfoStatus>());
+        builder.Property(x => x.Status).HasColumnName("status");
         builder.Property(x => x.CreatedBy).HasColumnName("created_by");
         builder.Property(x => x.AssignedTo).HasColumnName("assigned_to");
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");

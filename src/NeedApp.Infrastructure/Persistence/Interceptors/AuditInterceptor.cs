@@ -30,7 +30,7 @@ public class AuditInterceptor(ICurrentUserService currentUserService) : SaveChan
 
         var entries = context.ChangeTracker.Entries()
             .Where(e => e.Entity is not AuditLog
-                     && e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted);
+                     && (e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted));
 
         foreach (var entry in entries)
         {

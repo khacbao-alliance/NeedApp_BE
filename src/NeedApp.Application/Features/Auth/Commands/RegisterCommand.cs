@@ -9,7 +9,7 @@ using NeedApp.Domain.Interfaces;
 
 namespace NeedApp.Application.Features.Auth.Commands;
 
-public record RegisterCommand(string Email, string Password, string? Name, UserRole? Role) : IRequest<AuthResponse>;
+public record RegisterCommand(string Email, string Password, string? Name) : IRequest<AuthResponse>;
 
 public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
 {
@@ -38,7 +38,7 @@ public class RegisterCommandHandler(
         {
             Email = request.Email,
             Name = request.Name,
-            Role = request.Role ?? UserRole.Client,
+            Role = UserRole.Client,
             PasswordHash = passwordHasher.Hash(request.Password)
         };
 

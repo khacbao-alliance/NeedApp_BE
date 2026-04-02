@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NeedApp.Domain.Entities;
-using NeedApp.Domain.Enums;
-using NeedApp.Infrastructure.Persistence.Converters;
 
 namespace NeedApp.Infrastructure.Persistence.Configurations;
 
@@ -18,8 +16,7 @@ public class RequestConfiguration : IEntityTypeConfiguration<Request>
         builder.Property(x => x.Description).HasColumnName("description");
         builder.Property(x => x.ClientId).HasColumnName("client_id");
         builder.Property(x => x.AssignedTo).HasColumnName("assigned_to");
-        builder.Property(x => x.Status).HasColumnName("status").HasColumnType("request_status")
-            .HasConversion(PostgresEnumConverter.ForEnum<RequestStatus>());
+        builder.Property(x => x.Status).HasColumnName("status");
         builder.Property(x => x.Priority).HasColumnName("priority");
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
         builder.Property(x => x.CreatedBy).HasColumnName("created_by");

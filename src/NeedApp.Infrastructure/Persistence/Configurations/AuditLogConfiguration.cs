@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using NeedApp.Domain.Entities;
-using NeedApp.Domain.Enums;
-using NeedApp.Infrastructure.Persistence.Converters;
 
 namespace NeedApp.Infrastructure.Persistence.Configurations;
 
@@ -16,8 +14,7 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         builder.Property(x => x.Id).HasColumnName("id");
         builder.Property(x => x.TableName).HasColumnName("table_name");
         builder.Property(x => x.RecordId).HasColumnName("record_id");
-        builder.Property(x => x.Action).HasColumnName("action").HasColumnType("audit_action")
-            .HasConversion(PostgresEnumConverter.ForNullableEnum<AuditAction>());
+        builder.Property(x => x.Action).HasColumnName("action");
         builder.Property(x => x.OldData).HasColumnName("old_data").HasColumnType("jsonb");
         builder.Property(x => x.NewData).HasColumnName("new_data").HasColumnType("jsonb");
         builder.Property(x => x.ChangedBy).HasColumnName("changed_by");
