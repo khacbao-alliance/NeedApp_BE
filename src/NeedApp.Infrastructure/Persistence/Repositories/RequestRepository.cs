@@ -16,4 +16,57 @@ public class RequestRepository(AppDbContext context) : BaseRepository<Request>(c
 
     public async Task<IEnumerable<Request>> GetByAssignedUserAsync(Guid userId, CancellationToken cancellationToken = default)
         => await DbSet.Where(r => r.AssignedTo == userId).ToListAsync(cancellationToken);
+
+    public async Task<Request?> GetWithDetailsAsync(Guid id, CancellationToken cancellationToken = default)
+        => await DbSet
+            .Include(r => r.Client)
+            .Include(r => r.AssignedUser)
+            .Include(r => r.Participants).ThenInclude(p => p.User)
+            .Include(r => r.Messages)
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+
+    public async Task<(IEnumerable<Request> Items, int TotalCount)> GetPagedAsync(
+        int page,
+        int pageSize,
+        string? search,
+        RequestStatus? status,
+        RequestPriority? priority,
+        Guid? currentUserId,
+        UserRole? currentUserRole,
+        CancellationToken cancellationToken = default)
+    {
+        var query = DbSet
+            .Include(r => r.Client)
+            .Include(r => r.AssignedUser)
+            .Include(r => r.Participants).ThenInclude(p => p.User)
+            .Include(r => r.Messages)
+            .AsQueryable();
+
+        // Role-based filtering: Client only sees requests they participate in
+        if (currentUserRole == UserRole.Client && currentUserId.HasValue)
+        {
+            query = query.Where(r => r.Participants.Any(p => p.UserId == currentUserId.Value));
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(r =>
+                r.Title.Contains(search) ||
+                (r.Description != null && r.Description.Contains(search)));
+
+        if (status.HasValue)
+            query = query.Where(r => r.Status == status.Value);
+
+        if (priority.HasValue)
+            query = query.Where(r => r.Priority == priority.Value);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(r => r.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
 }

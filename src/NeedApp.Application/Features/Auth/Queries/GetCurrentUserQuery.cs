@@ -17,9 +17,20 @@ public class GetCurrentUserQueryHandler(
         var userId = currentUserService.UserId
             ?? throw new UnauthorizedException("User is not authenticated.");
 
-        var user = await userRepository.GetByIdAsync(userId, cancellationToken)
+        var user = await userRepository.GetByIdWithClientAsync(userId, cancellationToken)
             ?? throw new NotFoundException("User", userId);
 
-        return new UserDto(user.Id, user.Email, user.Name, user.Role);
+        UserClientDto? clientDto = null;
+        var clientUser = user.ClientUsers.FirstOrDefault();
+        if (clientUser is not null)
+        {
+            var client = clientUser.Client;
+            clientDto = new UserClientDto(
+                client.Id, client.Name, client.Description,
+                client.ContactEmail, client.ContactPhone,
+                clientUser.Role);
+        }
+
+        return new UserDto(user.Id, user.Email, user.Name, user.Role, user.HasClient, user.AvatarUrl, clientDto);
     }
 }

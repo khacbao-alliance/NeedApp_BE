@@ -22,7 +22,8 @@ public class GoogleAuthService(IOptions<GoogleSettings> options) : IGoogleAuthSe
             return new GoogleUserPayload(
                 Subject: payload.Subject,
                 Email: payload.Email,
-                Name: payload.Name
+                Name: payload.Name,
+                Picture: payload.Picture
             );
         }
         catch (InvalidJwtException)

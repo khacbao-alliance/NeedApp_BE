@@ -2,7 +2,8 @@ namespace NeedApp.Domain.Enums;
 
 public enum NotificationType
 {
+    NewMessage,
     MissingInfo,
-    Comment,
-    StatusChange
+    StatusChange,
+    Assignment
 }

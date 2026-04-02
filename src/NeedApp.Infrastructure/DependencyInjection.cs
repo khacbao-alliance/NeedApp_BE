@@ -27,8 +27,10 @@ public static class DependencyInjection
         var nameTranslator = new NpgsqlSnakeCaseNameTranslator();
         dataSourceBuilder.MapEnum<UserRole>("user_role", nameTranslator);
         dataSourceBuilder.MapEnum<RequestStatus>("request_status", nameTranslator);
-        dataSourceBuilder.MapEnum<MissingInfoStatus>("missing_info_status", nameTranslator);
-        dataSourceBuilder.MapEnum<CommentType>("comment_type", nameTranslator);
+        dataSourceBuilder.MapEnum<RequestPriority>("request_priority", nameTranslator);
+        dataSourceBuilder.MapEnum<MessageType>("message_type", nameTranslator);
+        dataSourceBuilder.MapEnum<ClientRole>("client_role", nameTranslator);
+        dataSourceBuilder.MapEnum<ParticipantRole>("participant_role", nameTranslator);
         dataSourceBuilder.MapEnum<NotificationType>("notification_type", nameTranslator);
         dataSourceBuilder.MapEnum<AuditAction>("audit_action", nameTranslator);
         var dataSource = dataSourceBuilder.Build();
@@ -44,19 +46,33 @@ public static class DependencyInjection
                 .AddInterceptors(interceptor);
         });
 
+        // Settings
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
         services.Configure<GoogleSettings>(configuration.GetSection(GoogleSettings.SectionName));
+        services.Configure<CloudinarySettings>(configuration.GetSection(CloudinarySettings.SectionName));
+        services.Configure<SmtpSettings>(configuration.GetSection(SmtpSettings.SectionName));
 
+        // Repositories
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IClientRepository, ClientRepository>();
+        services.AddScoped<IClientUserRepository, ClientUserRepository>();
         services.AddScoped<IRequestRepository, RequestRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IMessageRepository, MessageRepository>();
+        services.AddScoped<IRequestParticipantRepository, RequestParticipantRepository>();
+        services.AddScoped<IFileAttachmentRepository, FileAttachmentRepository>();
+        services.AddScoped<IIntakeQuestionSetRepository, IntakeQuestionSetRepository>();
+        services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
 
+        // Services
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();
+        services.AddScoped<ICloudinaryService, CloudinaryService>();
+        services.AddScoped<IEmailService, EmailService>();
 
+        // Authentication
         var jwtSettings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()!;
         services.AddAuthentication(options =>
         {
@@ -74,6 +90,21 @@ public static class DependencyInjection
                 ValidateAudience = true,
                 ValidAudience = jwtSettings.Audience,
                 ClockSkew = TimeSpan.Zero
+            };
+
+            // Allow SignalR to receive JWT from query string (WebSocket can't use headers)
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                    {
+                        context.Token = accessToken;
+                    }
+                    return Task.CompletedTask;
+                }
             };
         });
 

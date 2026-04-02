@@ -9,5 +9,7 @@ public record AuthResponse(
     Guid UserId,
     string Email,
     string? Name,
-    UserRole? Role
+    UserRole? Role,
+    bool HasClient,
+    string? AvatarUrl
 );

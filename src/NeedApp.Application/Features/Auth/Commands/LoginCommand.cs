@@ -59,7 +59,9 @@ public class LoginCommandHandler(
             UserId: user.Id,
             Email: user.Email,
             Name: user.Name,
-            Role: user.Role
+            Role: user.Role,
+            HasClient: user.HasClient,
+            AvatarUrl: user.AvatarUrl
         );
     }
 }

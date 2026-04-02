@@ -1,4 +1,5 @@
 using Microsoft.OpenApi.Models;
+using NeedApp.API.Hubs;
 using NeedApp.API.Middleware;
 using NeedApp.API.Services;
 using NeedApp.Application;
@@ -53,14 +54,24 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IChatHubService, ChatHubService>();
 
+// SignalR
+builder.Services.AddSignalR();
+
+// CORS — must allow credentials for SignalR WebSocket
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        policy.WithOrigins(
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "https://localhost:3000"
+            )
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials(); // Required for SignalR
     });
 });
 
@@ -83,5 +94,8 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// Map SignalR Hub
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.Run();

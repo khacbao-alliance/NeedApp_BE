@@ -1,0 +1,59 @@
+using MediatR;
+using NeedApp.Application.Common.Models;
+using NeedApp.Application.DTOs.Request;
+using NeedApp.Application.Interfaces;
+using NeedApp.Domain.Enums;
+using NeedApp.Domain.Interfaces;
+
+namespace NeedApp.Application.Features.Requests.Queries;
+
+public record GetRequestsQuery(
+    int Page = 1,
+    int PageSize = 10,
+    string? Search = null,
+    RequestStatus? Status = null,
+    RequestPriority? Priority = null
+) : IRequest<PaginatedResult<RequestDto>>;
+
+public class GetRequestsQueryHandler(
+    IRequestRepository requestRepository,
+    ICurrentUserService currentUserService)
+    : IRequestHandler<GetRequestsQuery, PaginatedResult<RequestDto>>
+{
+    public async Task<PaginatedResult<RequestDto>> Handle(GetRequestsQuery request, CancellationToken cancellationToken)
+    {
+        var userId = currentUserService.UserId;
+        var userRole = currentUserService.UserRole;
+
+        var (items, totalCount) = await requestRepository.GetPagedAsync(
+            request.Page,
+            request.PageSize,
+            request.Search,
+            request.Status,
+            request.Priority,
+            userId,
+            userRole,
+            cancellationToken);
+
+        var dtos = items.Select(r => new RequestDto(
+            r.Id,
+            r.Title,
+            r.Description,
+            r.Status,
+            r.Priority,
+            r.Client != null ? new RequestClientDto(r.Client.Id, r.Client.Name) : null,
+            r.AssignedUser != null ? new RequestUserDto(r.AssignedUser.Id, r.AssignedUser.Name, r.AssignedUser.AvatarUrl) : null,
+            r.Participants.Any()
+                ? new RequestUserDto(
+                    r.Participants.First(p => p.Role == ParticipantRole.Creator).UserId,
+                    r.Participants.First(p => p.Role == ParticipantRole.Creator).User?.Name,
+                    r.Participants.First(p => p.Role == ParticipantRole.Creator).User?.AvatarUrl)
+                : null,
+            r.Messages.Count,
+            r.CreatedAt,
+            r.UpdatedAt
+        ));
+
+        return PaginatedResult<RequestDto>.Create(dtos, totalCount, request.Page, request.PageSize);
+    }
+}

@@ -15,6 +15,6 @@ public class GetUserByIdQueryHandler(IUserRepository userRepository)
         var user = await userRepository.GetByIdAsync(request.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(Domain.Entities.User), request.Id);
 
-        return new UserDetailDto(user.Id, user.Email, user.Name, user.Role, user.CreatedAt, user.UpdatedAt);
+        return new UserDetailDto(user.Id, user.Email, user.Name, user.Role, user.HasClient, user.AvatarUrl, user.CreatedAt, user.UpdatedAt);
     }
 }

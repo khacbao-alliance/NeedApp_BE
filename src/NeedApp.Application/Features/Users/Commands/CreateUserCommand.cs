@@ -49,6 +49,6 @@ public class CreateUserCommandHandler(
         await userRepository.AddAsync(user, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return new UserDetailDto(user.Id, user.Email, user.Name, user.Role, user.CreatedAt, user.UpdatedAt);
+        return new UserDetailDto(user.Id, user.Email, user.Name, user.Role, user.HasClient, user.AvatarUrl, user.CreatedAt, user.UpdatedAt);
     }
 }

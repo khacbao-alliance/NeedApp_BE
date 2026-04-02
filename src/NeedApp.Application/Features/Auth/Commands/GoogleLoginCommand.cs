@@ -38,13 +38,17 @@ public class GoogleLoginCommandHandler(
                 Email = payload.Email,
                 Name = payload.Name,
                 GoogleId = payload.Subject,
-                Role = UserRole.Client
+                Role = UserRole.Client,
+                HasClient = false,
+                AvatarUrl = payload.Picture
             };
             await userRepository.AddAsync(user, cancellationToken);
         }
         else if (user.GoogleId is null)
         {
             user.GoogleId = payload.Subject;
+            if (user.AvatarUrl is null && payload.Picture is not null)
+                user.AvatarUrl = payload.Picture;
             userRepository.Update(user);
         }
 
@@ -68,7 +72,9 @@ public class GoogleLoginCommandHandler(
             UserId: user.Id,
             Email: user.Email,
             Name: user.Name,
-            Role: user.Role
+            Role: user.Role,
+            HasClient: user.HasClient,
+            AvatarUrl: user.AvatarUrl
         );
     }
 }

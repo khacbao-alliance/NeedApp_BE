@@ -62,4 +62,20 @@ public class AuthController(IMediator mediator) : ControllerBase
             cancellationToken);
         return Ok(result);
     }
+
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
+    {
+        await mediator.Send(new ForgotPasswordCommand(request.Email), cancellationToken);
+        return Ok(new { message = "If the email exists, a password reset OTP has been sent." });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken cancellationToken)
+    {
+        await mediator.Send(
+            new ResetPasswordCommand(request.Email, request.OtpCode, request.NewPassword),
+            cancellationToken);
+        return Ok(new { message = "Password has been reset successfully." });
+    }
 }

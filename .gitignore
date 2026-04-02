@@ -36,3 +36,6 @@ packages/
 
 NeedApp/**/bin/
 NeedApp/**/obj/
+
+tmpneedapp-build/
+docs/

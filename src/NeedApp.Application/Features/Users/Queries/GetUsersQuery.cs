@@ -25,7 +25,7 @@ public class GetUsersQueryHandler(IUserRepository userRepository)
             request.Role,
             cancellationToken);
 
-        var dtos = items.Select(u => new UserDetailDto(u.Id, u.Email, u.Name, u.Role, u.CreatedAt, u.UpdatedAt));
+        var dtos = items.Select(u => new UserDetailDto(u.Id, u.Email, u.Name, u.Role, u.HasClient, u.AvatarUrl, u.CreatedAt, u.UpdatedAt));
 
         return PaginatedResult<UserDetailDto>.Create(dtos, totalCount, request.Page, request.PageSize);
     }

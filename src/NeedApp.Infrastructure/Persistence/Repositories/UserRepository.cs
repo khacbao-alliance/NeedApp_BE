@@ -11,6 +11,12 @@ public class UserRepository(AppDbContext context) : BaseRepository<User>(context
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
         => await DbSet.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
 
+    public async Task<User?> GetByIdWithClientAsync(Guid id, CancellationToken cancellationToken = default)
+        => await DbSet
+            .Include(u => u.ClientUsers.Where(cu => !cu.IsDeleted))
+                .ThenInclude(cu => cu.Client)
+            .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+
     public async Task<(IEnumerable<User> Items, int TotalCount)> GetPagedAsync(
         int page,
         int pageSize,

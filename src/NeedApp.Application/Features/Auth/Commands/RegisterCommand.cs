@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using NeedApp.Application.DTOs.Auth;
 using NeedApp.Application.Interfaces;
 using NeedApp.Domain.Entities;
@@ -26,7 +27,9 @@ public class RegisterCommandHandler(
     IRefreshTokenRepository refreshTokenRepository,
     IPasswordHasher passwordHasher,
     IJwtService jwtService,
-    IUnitOfWork unitOfWork) : IRequestHandler<RegisterCommand, AuthResponse>
+    IEmailService emailService,
+    IUnitOfWork unitOfWork,
+    ILogger<RegisterCommandHandler> logger) : IRequestHandler<RegisterCommand, AuthResponse>
 {
     public async Task<AuthResponse> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
@@ -39,7 +42,8 @@ public class RegisterCommandHandler(
             Email = request.Email,
             Name = request.Name,
             Role = UserRole.Client,
-            PasswordHash = passwordHasher.Hash(request.Password)
+            PasswordHash = passwordHasher.Hash(request.Password),
+            HasClient = false
         };
 
         await userRepository.AddAsync(user, cancellationToken);
@@ -57,6 +61,19 @@ public class RegisterCommandHandler(
         await refreshTokenRepository.AddAsync(refreshToken, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        // Send welcome email (fire-and-forget)
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await emailService.SendWelcomeEmailAsync(user.Email, user.Name, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to send welcome email to {Email}", user.Email);
+            }
+        }, CancellationToken.None);
+
         return new AuthResponse(
             AccessToken: accessToken,
             RefreshToken: refreshTokenValue,
@@ -64,7 +81,9 @@ public class RegisterCommandHandler(
             UserId: user.Id,
             Email: user.Email,
             Name: user.Name,
-            Role: user.Role
+            Role: user.Role,
+            HasClient: false,
+            AvatarUrl: null
         );
     }
 }

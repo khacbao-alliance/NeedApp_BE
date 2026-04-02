@@ -1,0 +1,48 @@
+using MediatR;
+using NeedApp.Application.DTOs.Request;
+using NeedApp.Application.Interfaces;
+using NeedApp.Domain.Enums;
+using NeedApp.Domain.Exceptions;
+using NeedApp.Domain.Interfaces;
+
+namespace NeedApp.Application.Features.Requests.Queries;
+
+public record GetRequestByIdQuery(Guid Id) : IRequest<RequestDto>;
+
+public class GetRequestByIdQueryHandler(
+    IRequestRepository requestRepository,
+    ICurrentUserService currentUserService)
+    : IRequestHandler<GetRequestByIdQuery, RequestDto>
+{
+    public async Task<RequestDto> Handle(GetRequestByIdQuery request, CancellationToken cancellationToken)
+    {
+        var userId = currentUserService.UserId;
+        var userRole = currentUserService.UserRole;
+
+        var r = await requestRepository.GetWithDetailsAsync(request.Id, cancellationToken)
+            ?? throw new NotFoundException("Request", request.Id);
+
+        // Client can only view requests they participate in
+        if (userRole == UserRole.Client && userId.HasValue)
+        {
+            if (!r.Participants.Any(p => p.UserId == userId.Value))
+                throw new NotFoundException("Request", request.Id);
+        }
+
+        var creator = r.Participants.FirstOrDefault(p => p.Role == ParticipantRole.Creator);
+
+        return new RequestDto(
+            r.Id,
+            r.Title,
+            r.Description,
+            r.Status,
+            r.Priority,
+            r.Client != null ? new RequestClientDto(r.Client.Id, r.Client.Name) : null,
+            r.AssignedUser != null ? new RequestUserDto(r.AssignedUser.Id, r.AssignedUser.Name, r.AssignedUser.AvatarUrl) : null,
+            creator != null ? new RequestUserDto(creator.UserId, creator.User?.Name, creator.User?.AvatarUrl) : null,
+            r.Messages.Count,
+            r.CreatedAt,
+            r.UpdatedAt
+        );
+    }
+}

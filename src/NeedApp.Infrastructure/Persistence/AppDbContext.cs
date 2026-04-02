@@ -11,13 +11,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ClientUser> ClientUsers => Set<ClientUser>();
     public DbSet<Request> Requests => Set<Request>();
     public DbSet<RequestParticipant> RequestParticipants => Set<RequestParticipant>();
-    public DbSet<MissingInformation> MissingInformations => Set<MissingInformation>();
-    public DbSet<Comment> Comments => Set<Comment>();
-    public DbSet<RequestFile> Files => Set<RequestFile>();
+    public DbSet<Message> Messages => Set<Message>();
+    public DbSet<FileAttachment> FileAttachments => Set<FileAttachment>();
+    public DbSet<IntakeQuestionSet> IntakeQuestionSets => Set<IntakeQuestionSet>();
+    public DbSet<IntakeQuestion> IntakeQuestions => Set<IntakeQuestion>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
-    public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -25,8 +26,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         modelBuilder.HasPostgresEnum<UserRole>(schema: null, name: "user_role");
         modelBuilder.HasPostgresEnum<RequestStatus>(schema: null, name: "request_status");
-        modelBuilder.HasPostgresEnum<MissingInfoStatus>(schema: null, name: "missing_info_status");
-        modelBuilder.HasPostgresEnum<CommentType>(schema: null, name: "comment_type");
+        modelBuilder.HasPostgresEnum<RequestPriority>(schema: null, name: "request_priority");
+        modelBuilder.HasPostgresEnum<MessageType>(schema: null, name: "message_type");
+        modelBuilder.HasPostgresEnum<ClientRole>(schema: null, name: "client_role");
+        modelBuilder.HasPostgresEnum<ParticipantRole>(schema: null, name: "participant_role");
         modelBuilder.HasPostgresEnum<NotificationType>(schema: null, name: "notification_type");
         modelBuilder.HasPostgresEnum<AuditAction>(schema: null, name: "audit_action");
 

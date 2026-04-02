@@ -7,6 +7,8 @@ public record UserDetailDto(
     string Email,
     string? Name,
     UserRole? Role,
+    bool HasClient,
+    string? AvatarUrl,
     DateTime CreatedAt,
     DateTime? UpdatedAt
 );

@@ -10,13 +10,13 @@ public class Request : AuditableEntity
     public Guid ClientId { get; set; }
     public Guid? AssignedTo { get; set; }
     public RequestStatus Status { get; set; } = RequestStatus.Draft;
-    public string? Priority { get; set; }
+    public RequestPriority Priority { get; set; } = RequestPriority.Medium;
+    public Guid? IntakeQuestionSetId { get; set; }
+    public int IntakeProgress { get; set; } = 0;
 
     public Client Client { get; set; } = default!;
     public User? AssignedUser { get; set; }
+    public IntakeQuestionSet? IntakeQuestionSet { get; set; }
     public ICollection<RequestParticipant> Participants { get; set; } = [];
-    public ICollection<MissingInformation> MissingInformations { get; set; } = [];
-    public ICollection<Comment> Comments { get; set; } = [];
-    public ICollection<RequestFile> Files { get; set; } = [];
-    public ICollection<ActivityLog> ActivityLogs { get; set; } = [];
+    public ICollection<Message> Messages { get; set; } = [];
 }
