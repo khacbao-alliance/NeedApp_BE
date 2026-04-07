@@ -50,6 +50,21 @@ public class MessagesController(IMediator mediator) : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Get a structured summary of the conversation with AI-powered insights.
+    /// Staff/Admin can view all. Client can only view their own requests.
+    /// </summary>
+    [HttpGet("summary")]
+    public async Task<IActionResult> GetConversationSummary(
+        Guid requestId,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetConversationSummaryQuery(requestId),
+            cancellationToken);
+        return Ok(result);
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteMessage(
         Guid requestId,

@@ -44,4 +44,12 @@ public class MessageRepository(AppDbContext context)
             .Where(m => m.RequestId == requestId && m.Type == type)
             .OrderBy(m => m.CreatedAt)
             .ToListAsync(cancellationToken);
+
+    public async Task<IEnumerable<Message>> GetAllByRequestIdAsync(Guid requestId, CancellationToken cancellationToken = default)
+        => await _context.Messages
+            .Where(m => m.RequestId == requestId && !m.IsDeleted)
+            .Include(m => m.Sender)
+            .Include(m => m.Files)
+            .OrderBy(m => m.CreatedAt)
+            .ToListAsync(cancellationToken);
 }

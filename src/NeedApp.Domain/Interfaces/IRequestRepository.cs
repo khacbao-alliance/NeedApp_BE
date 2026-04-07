@@ -17,5 +17,6 @@ public interface IRequestRepository : IRepository<Request>
         RequestPriority? priority,
         Guid? currentUserId,
         UserRole? currentUserRole,
+        Guid? currentClientId,
         CancellationToken cancellationToken = default);
 }

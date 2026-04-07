@@ -20,4 +20,8 @@ public interface IMessageRepository : IRepository<Message>
         Guid requestId,
         MessageType type,
         CancellationToken cancellationToken = default);
+
+    Task<IEnumerable<Message>> GetAllByRequestIdAsync(
+        Guid requestId,
+        CancellationToken cancellationToken = default);
 }

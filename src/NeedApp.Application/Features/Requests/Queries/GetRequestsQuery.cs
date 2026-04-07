@@ -17,6 +17,7 @@ public record GetRequestsQuery(
 
 public class GetRequestsQueryHandler(
     IRequestRepository requestRepository,
+    IClientUserRepository clientUserRepository,
     ICurrentUserService currentUserService)
     : IRequestHandler<GetRequestsQuery, PaginatedResult<RequestDto>>
 {
@@ -24,6 +25,14 @@ public class GetRequestsQueryHandler(
     {
         var userId = currentUserService.UserId;
         var userRole = currentUserService.UserRole;
+
+        // Resolve ClientId for Client-role users so GetPagedAsync can filter by company
+        Guid? currentClientId = null;
+        if (userRole == UserRole.Client && userId.HasValue)
+        {
+            var clientUser = await clientUserRepository.GetByUserIdAsync(userId.Value, cancellationToken);
+            currentClientId = clientUser?.ClientId;
+        }
 
         var (items, totalCount) = await requestRepository.GetPagedAsync(
             request.Page,
@@ -33,6 +42,7 @@ public class GetRequestsQueryHandler(
             request.Priority,
             userId,
             userRole,
+            currentClientId,
             cancellationToken);
 
         var dtos = items.Select(r => new RequestDto(
@@ -43,7 +53,7 @@ public class GetRequestsQueryHandler(
             r.Priority,
             r.Client != null ? new RequestClientDto(r.Client.Id, r.Client.Name) : null,
             r.AssignedUser != null ? new RequestUserDto(r.AssignedUser.Id, r.AssignedUser.Name, r.AssignedUser.AvatarUrl) : null,
-            r.Participants.Any()
+            r.Participants.Any(p => p.Role == ParticipantRole.Creator)
                 ? new RequestUserDto(
                     r.Participants.First(p => p.Role == ParticipantRole.Creator).UserId,
                     r.Participants.First(p => p.Role == ParticipantRole.Creator).User?.Name,
