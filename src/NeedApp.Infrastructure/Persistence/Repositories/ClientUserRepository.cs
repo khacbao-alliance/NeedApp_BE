@@ -15,6 +15,16 @@ public class ClientUserRepository(AppDbContext context)
     public async Task<IEnumerable<ClientUser>> GetByClientIdAsync(Guid clientId, CancellationToken cancellationToken = default)
         => await _context.ClientUsers
             .Include(cu => cu.User)
-            .Where(cu => cu.ClientId == clientId)
+            .Where(cu => cu.ClientId == clientId && !cu.IsDeleted)
             .ToListAsync(cancellationToken);
+
+    public async Task<ClientUser?> GetByUserAndClientIdAsync(Guid userId, Guid clientId, CancellationToken cancellationToken = default)
+        => await _context.ClientUsers
+            .Include(cu => cu.Client)
+            .FirstOrDefaultAsync(cu => cu.UserId == userId && cu.ClientId == clientId && !cu.IsDeleted, cancellationToken);
+
+    public async Task<ClientUser?> GetByUserAndClientIdIncludeDeletedAsync(Guid userId, Guid clientId, CancellationToken cancellationToken = default)
+        => await _context.ClientUsers
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(cu => cu.UserId == userId && cu.ClientId == clientId, cancellationToken);
 }

@@ -33,6 +33,7 @@ public class RequestRepository(AppDbContext context) : BaseRepository<Request>(c
         RequestPriority? priority,
         Guid? currentUserId,
         UserRole? currentUserRole,
+        Guid? currentClientId,
         CancellationToken cancellationToken = default)
     {
         var query = DbSet
@@ -42,10 +43,15 @@ public class RequestRepository(AppDbContext context) : BaseRepository<Request>(c
             .Include(r => r.Messages)
             .AsQueryable();
 
-        // Role-based filtering: Client only sees requests they participate in
-        if (currentUserRole == UserRole.Client && currentUserId.HasValue)
+        // Role-based filtering: Client only sees requests belonging to their Client company
+        if (currentUserRole == UserRole.Client)
         {
-            query = query.Where(r => r.Participants.Any(p => p.UserId == currentUserId.Value));
+            if (!currentClientId.HasValue)
+            {
+                // Safety guard: Client-role user with no client → return empty (e.g. kicked user with stale token)
+                return (Enumerable.Empty<Request>(), 0);
+            }
+            query = query.Where(r => r.ClientId == currentClientId.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(search))

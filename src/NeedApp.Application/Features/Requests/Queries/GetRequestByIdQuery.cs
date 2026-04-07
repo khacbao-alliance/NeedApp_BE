@@ -11,6 +11,7 @@ public record GetRequestByIdQuery(Guid Id) : IRequest<RequestDto>;
 
 public class GetRequestByIdQueryHandler(
     IRequestRepository requestRepository,
+    IClientUserRepository clientUserRepository,
     ICurrentUserService currentUserService)
     : IRequestHandler<GetRequestByIdQuery, RequestDto>
 {
@@ -22,10 +23,11 @@ public class GetRequestByIdQueryHandler(
         var r = await requestRepository.GetWithDetailsAsync(request.Id, cancellationToken)
             ?? throw new NotFoundException("Request", request.Id);
 
-        // Client can only view requests they participate in
+        // Client can only view requests belonging to their company (ClientId match)
         if (userRole == UserRole.Client && userId.HasValue)
         {
-            if (!r.Participants.Any(p => p.UserId == userId.Value))
+            var clientUser = await clientUserRepository.GetByUserIdAsync(userId.Value, cancellationToken);
+            if (clientUser == null || r.ClientId != clientUser.ClientId)
                 throw new NotFoundException("Request", request.Id);
         }
 

@@ -33,6 +33,7 @@ public static class DependencyInjection
         dataSourceBuilder.MapEnum<ParticipantRole>("participant_role", nameTranslator);
         dataSourceBuilder.MapEnum<NotificationType>("notification_type", nameTranslator);
         dataSourceBuilder.MapEnum<AuditAction>("audit_action", nameTranslator);
+        dataSourceBuilder.MapEnum<InvitationStatus>("invitation_status", nameTranslator);
         var dataSource = dataSourceBuilder.Build();
         services.AddSingleton(dataSource);
 
@@ -51,6 +52,7 @@ public static class DependencyInjection
         services.Configure<GoogleSettings>(configuration.GetSection(GoogleSettings.SectionName));
         services.Configure<CloudinarySettings>(configuration.GetSection(CloudinarySettings.SectionName));
         services.Configure<SmtpSettings>(configuration.GetSection(SmtpSettings.SectionName));
+        services.Configure<GeminiSettings>(configuration.GetSection(GeminiSettings.SectionName));
 
         // Repositories
         services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -64,6 +66,7 @@ public static class DependencyInjection
         services.AddScoped<IFileAttachmentRepository, FileAttachmentRepository>();
         services.AddScoped<IIntakeQuestionSetRepository, IntakeQuestionSetRepository>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+        services.AddScoped<IInvitationRepository, InvitationRepository>();
 
         // Services
         services.AddScoped<IJwtService, JwtService>();
@@ -71,6 +74,7 @@ public static class DependencyInjection
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();
         services.AddScoped<ICloudinaryService, CloudinaryService>();
         services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<IGeminiService, GeminiService>();
 
         // Authentication
         var jwtSettings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()!;

@@ -27,6 +27,7 @@ public class SendMessageCommandHandler(
     IRequestRepository requestRepository,
     IMessageRepository messageRepository,
     IRequestParticipantRepository participantRepository,
+    IClientUserRepository clientUserRepository,
     IIntakeQuestionSetRepository intakeRepo,
     IUserRepository userRepository,
     ICurrentUserService currentUserService,
@@ -37,13 +38,37 @@ public class SendMessageCommandHandler(
     {
         var userId = currentUserService.UserId
             ?? throw new UnauthorizedException("User not authenticated.");
+        var userRole = currentUserService.UserRole;
 
         var request = await requestRepository.GetByIdAsync(command.RequestId, cancellationToken)
             ?? throw new NotFoundException(nameof(Request), command.RequestId);
 
+        // Access check:
+        // - Staff/Admin: must already be a participant (assigned)
+        // - Client: must be a member of the Client company that owns the request
         var isParticipant = await participantRepository.IsParticipantAsync(command.RequestId, userId, cancellationToken);
+
         if (!isParticipant)
-            throw new UnauthorizedException("You are not a participant of this request.");
+        {
+            if (userRole == UserRole.Client)
+            {
+                var clientUser = await clientUserRepository.GetByUserIdAsync(userId, cancellationToken);
+                if (clientUser == null || clientUser.ClientId != request.ClientId)
+                    throw new UnauthorizedException("You are not a member of the client that owns this request.");
+
+                // Auto-join as Observer on first message
+                await participantRepository.AddAsync(new RequestParticipant
+                {
+                    RequestId = command.RequestId,
+                    UserId = userId,
+                    Role = ParticipantRole.Observer
+                }, cancellationToken);
+            }
+            else
+            {
+                throw new UnauthorizedException("You are not a participant of this request.");
+            }
+        }
 
         // Get sender info for response
         var sender = await userRepository.GetByIdAsync(userId, cancellationToken);
