@@ -32,6 +32,7 @@ public class SendMessageCommandHandler(
     IUserRepository userRepository,
     ICurrentUserService currentUserService,
     IChatHubService chatHubService,
+    INotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<SendMessageCommand, MessageDto>
 {
     public async Task<MessageDto> Handle(SendMessageCommand command, CancellationToken cancellationToken)
@@ -148,6 +149,18 @@ public class SendMessageCommandHandler(
         if (command.Type == MessageType.Text || command.Type == MessageType.File)
         {
             await chatHubService.SendMessageToRequest(command.RequestId, messageDto);
+
+            // Notify other participants about new message
+            var participants = await participantRepository.GetByRequestIdAsync(command.RequestId, cancellationToken);
+            var otherUserIds = participants.Where(p => p.UserId != userId).Select(p => p.UserId);
+            await notificationService.NotifyMultipleAsync(
+                otherUserIds,
+                Domain.Enums.NotificationType.NewMessage,
+                $"Tin nhắn mới trong \"{request.Title}\"",
+                command.Content?.Length > 100 ? command.Content[..100] + "..." : command.Content ?? "",
+                command.RequestId,
+                "Request",
+                cancellationToken);
         }
 
         // If intake just completed, notify via SignalR that status changed
@@ -180,6 +193,7 @@ public class SendMissingInfoCommandHandler(
     IUserRepository userRepository,
     ICurrentUserService currentUserService,
     IChatHubService chatHubService,
+    INotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<SendMissingInfoCommand, MessageDto>
 {
     public async Task<MessageDto> Handle(SendMissingInfoCommand command, CancellationToken cancellationToken)
@@ -225,6 +239,19 @@ public class SendMissingInfoCommandHandler(
         // Push MissingInfo via SignalR so client sees it in real-time
         await chatHubService.SendMessageToRequest(command.RequestId, messageDto);
         await chatHubService.SendRequestStatusChanged(command.RequestId, request.Status.ToString());
+
+        // Notify request creator about missing info (critical — sends email)
+        if (request.CreatedBy.HasValue)
+        {
+            await notificationService.NotifyAsync(
+                request.CreatedBy.Value,
+                Domain.Enums.NotificationType.MissingInfo,
+                "Yêu cầu bổ sung thông tin",
+                $"Request \"{request.Title}\" cần bổ sung thông tin: {command.Content}",
+                command.RequestId,
+                "Request",
+                cancellationToken);
+        }
 
         return messageDto;
     }

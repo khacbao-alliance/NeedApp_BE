@@ -30,6 +30,7 @@ public class InviteClientMemberCommandHandler(
     IInvitationRepository invitationRepository,
     IUserRepository userRepository,
     ICurrentUserService currentUserService,
+    INotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<InviteClientMemberCommand, InvitationDto>
 {
     public async Task<InvitationDto> Handle(InviteClientMemberCommand command, CancellationToken cancellationToken)
@@ -75,9 +76,22 @@ public class InviteClientMemberCommandHandler(
         await invitationRepository.AddAsync(invitation, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var requesterName = (await userRepository.GetByIdAsync(requesterId, cancellationToken))?.Name ?? "";
+        var clientName = requesterMembership.Client?.Name ?? "";
+
+        // Notify the invited user (critical — sends email)
+        await notificationService.NotifyAsync(
+            invitee.Id,
+            Domain.Enums.NotificationType.Invitation,
+            "Bạn được mời tham gia tổ chức",
+            $"{requesterName} đã mời bạn tham gia \"{clientName}\" với vai trò {command.Role}.",
+            invitation.Id,
+            "Invitation",
+            cancellationToken);
+
         return new InvitationDto(
             invitation.Id,
-            requesterMembership.Client?.Name ?? "",
+            clientName,
             invitee.Name,
             command.Role,
             InvitationStatus.Pending,

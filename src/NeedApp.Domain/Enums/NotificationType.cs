@@ -5,5 +5,7 @@ public enum NotificationType
     NewMessage,
     MissingInfo,
     StatusChange,
-    Assignment
+    Assignment,
+    NewRequest,
+    Invitation
 }

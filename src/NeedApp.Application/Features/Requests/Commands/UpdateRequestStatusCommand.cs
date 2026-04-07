@@ -26,6 +26,7 @@ public class UpdateRequestStatusCommandHandler(
     IRequestRepository requestRepository,
     IMessageRepository messageRepository,
     ICurrentUserService currentUserService,
+    INotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpdateRequestStatusCommand, RequestDto>
 {
     // Define valid transitions to prevent invalid state changes
@@ -67,6 +68,19 @@ public class UpdateRequestStatusCommandHandler(
         }, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Notify request creator about status change (critical — sends email)
+        if (request.CreatedBy.HasValue && request.CreatedBy.Value != userId)
+        {
+            await notificationService.NotifyAsync(
+                request.CreatedBy.Value,
+                Domain.Enums.NotificationType.StatusChange,
+                "Trạng thái yêu cầu đã thay đổi",
+                $"Request \"{request.Title}\" đã chuyển từ \"{oldStatus}\" sang \"{command.Status}\".",
+                request.Id,
+                "Request",
+                cancellationToken);
+        }
 
         // Build response
         var creator = request.Participants.FirstOrDefault(p => p.Role == ParticipantRole.Creator);

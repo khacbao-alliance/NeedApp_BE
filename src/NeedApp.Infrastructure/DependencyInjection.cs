@@ -67,6 +67,7 @@ public static class DependencyInjection
         services.AddScoped<IIntakeQuestionSetRepository, IntakeQuestionSetRepository>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IInvitationRepository, InvitationRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
 
         // Services
         services.AddScoped<IJwtService, JwtService>();
@@ -75,6 +76,7 @@ public static class DependencyInjection
         services.AddScoped<ICloudinaryService, CloudinaryService>();
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<IGeminiService, GeminiService>();
+        services.AddScoped<INotificationService, NotificationService>();
 
         // Authentication
         var jwtSettings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()!;

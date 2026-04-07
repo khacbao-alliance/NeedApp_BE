@@ -163,4 +163,58 @@ public class EmailService(IOptions<SmtpSettings> smtpOptions, ILogger<EmailServi
         </html>
         """;
     }
+
+    public async Task SendNotificationEmailAsync(string toEmail, string? userName, string title, string content, CancellationToken cancellationToken = default)
+    {
+        var displayName = userName ?? "bạn";
+        var subject = $"🔔 {title} - NeedApp";
+        var body = BuildNotificationEmailHtml(displayName, title, content);
+
+        await SendEmailAsync(toEmail, subject, body, cancellationToken);
+        logger.LogInformation("Notification email sent to {Email}: {Title}", toEmail, title);
+    }
+
+    private static string BuildNotificationEmailHtml(string displayName, string title, string content)
+    {
+        return $"""
+        <!DOCTYPE html>
+        <html lang="vi">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin:0;padding:0;font-family:'Segoe UI',Roboto,Arial,sans-serif;background-color:#f4f7fa;">
+            <div style="max-width:600px;margin:40px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+                <!-- Header -->
+                <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6,#a855f7);padding:40px 32px;text-align:center;">
+                    <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">NeedApp</h1>
+                    <p style="color:rgba(255,255,255,0.9);margin:8px 0 0;font-size:14px;">Thông báo mới</p>
+                </div>
+
+                <!-- Body -->
+                <div style="padding:40px 32px;">
+                    <h2 style="color:#1e293b;margin:0 0 16px;font-size:22px;">Xin chào {displayName}! 🔔</h2>
+
+                    <div style="background:#f0f4ff;border-left:4px solid #6366f1;border-radius:0 12px 12px 0;padding:20px;margin:24px 0;">
+                        <p style="color:#4338ca;font-size:16px;font-weight:600;margin:0 0 8px;">{title}</p>
+                        <p style="color:#475569;font-size:14px;line-height:1.6;margin:0;">{content}</p>
+                    </div>
+
+                    <p style="color:#475569;font-size:15px;line-height:1.7;margin:16px 0 0;">
+                        Đăng nhập vào NeedApp để xem chi tiết.
+                    </p>
+                </div>
+
+                <!-- Footer -->
+                <div style="background:#f8fafc;padding:24px 32px;text-align:center;border-top:1px solid #e2e8f0;">
+                    <p style="color:#94a3b8;font-size:12px;margin:0;">
+                        © {DateTime.UtcNow.Year} NeedApp. All rights reserved.
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """;
+    }
 }
+

@@ -27,6 +27,7 @@ public class AssignRequestCommandHandler(
     IMessageRepository messageRepository,
     ICurrentUserService currentUserService,
     IChatHubService chatHubService,
+    INotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<AssignRequestCommand, RequestDto>
 {
     public async Task<RequestDto> Handle(AssignRequestCommand command, CancellationToken cancellationToken)
@@ -106,6 +107,19 @@ public class AssignRequestCommandHandler(
             systemMsg.Id, systemMsg.Type, systemMsg.Content,
             null, null, null, [], systemMsg.CreatedAt);
         await chatHubService.SendMessageToRequest(command.RequestId, systemMsgDto);
+
+        // Notify assigned staff (critical — sends email)
+        if (command.StaffUserId != userId)
+        {
+            await notificationService.NotifyAsync(
+                command.StaffUserId,
+                Domain.Enums.NotificationType.Assignment,
+                "Bạn được assign request mới",
+                $"Yêu cầu \"{request.Title}\" đã được giao cho bạn.",
+                request.Id,
+                "Request",
+                cancellationToken);
+        }
 
         // Build response
         var creator = request.Participants.FirstOrDefault(p => p.Role == ParticipantRole.Creator);
