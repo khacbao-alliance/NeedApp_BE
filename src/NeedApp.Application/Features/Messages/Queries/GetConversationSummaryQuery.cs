@@ -1,5 +1,6 @@
 using System.Text.Json;
 using MediatR;
+using Microsoft.Extensions.Caching.Memory;
 using NeedApp.Application.DTOs.Message;
 using NeedApp.Application.Interfaces;
 using NeedApp.Domain.Enums;
@@ -15,8 +16,10 @@ public class GetConversationSummaryQueryHandler(
     IMessageRepository messageRepository,
     IClientUserRepository clientUserRepository,
     ICurrentUserService currentUserService,
-    IGeminiService geminiService) : IRequestHandler<GetConversationSummaryQuery, ConversationSummaryDto>
+    IGeminiService geminiService,
+    IMemoryCache cache) : IRequestHandler<GetConversationSummaryQuery, ConversationSummaryDto>
 {
+    private static readonly TimeSpan AiSummaryCacheDuration = TimeSpan.FromMinutes(10);
     public async Task<ConversationSummaryDto> Handle(GetConversationSummaryQuery query, CancellationToken cancellationToken)
     {
         var userId = currentUserService.UserId
@@ -34,7 +37,7 @@ public class GetConversationSummaryQueryHandler(
                 throw new NotFoundException("Request", query.RequestId);
         }
 
-        var messages = (await messageRepository.GetAllByRequestIdAsync(query.RequestId, cancellationToken)).ToList();
+        var messages = await messageRepository.GetAllByRequestIdAsync(query.RequestId, cancellationToken);
 
         // --- Build Overview ---
         var overview = BuildOverview(messages);
@@ -51,12 +54,17 @@ public class GetConversationSummaryQueryHandler(
         // --- Build Attachments ---
         var attachments = BuildAttachments(messages);
 
-        // --- AI Summary via Gemini ---
+        // --- AI Summary via Gemini (cached 10 minutes) ---
         string? aiSummary = null;
         if (messages.Count > 0)
         {
-            var transcript = BuildTranscript(messages);
-            aiSummary = await geminiService.SummarizeConversationAsync(transcript, cancellationToken);
+            var cacheKey = $"ai_summary_{query.RequestId}";
+            if (!cache.TryGetValue(cacheKey, out aiSummary))
+            {
+                var transcript = BuildTranscript(messages);
+                aiSummary = await geminiService.SummarizeConversationAsync(transcript, cancellationToken);
+                cache.Set(cacheKey, aiSummary, AiSummaryCacheDuration);
+            }
         }
 
         return new ConversationSummaryDto(

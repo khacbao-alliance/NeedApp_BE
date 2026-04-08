@@ -11,6 +11,7 @@ public record GetRequestByIdQuery(Guid Id) : IRequest<RequestDto>;
 
 public class GetRequestByIdQueryHandler(
     IRequestRepository requestRepository,
+    IMessageRepository messageRepository,
     IClientUserRepository clientUserRepository,
     ICurrentUserService currentUserService)
     : IRequestHandler<GetRequestByIdQuery, RequestDto>
@@ -32,6 +33,7 @@ public class GetRequestByIdQueryHandler(
         }
 
         var creator = r.Participants.FirstOrDefault(p => p.Role == ParticipantRole.Creator);
+        var messageCount = await messageRepository.GetCountByRequestIdAsync(r.Id, cancellationToken);
 
         return new RequestDto(
             r.Id,
@@ -42,7 +44,7 @@ public class GetRequestByIdQueryHandler(
             r.Client != null ? new RequestClientDto(r.Client.Id, r.Client.Name) : null,
             r.AssignedUser != null ? new RequestUserDto(r.AssignedUser.Id, r.AssignedUser.Name, r.AssignedUser.AvatarUrl) : null,
             creator != null ? new RequestUserDto(creator.UserId, creator.User?.Name, creator.User?.AvatarUrl) : null,
-            r.Messages.Count,
+            messageCount,
             r.CreatedAt,
             r.UpdatedAt
         );

@@ -17,6 +17,7 @@ public record GetRequestsQuery(
 
 public class GetRequestsQueryHandler(
     IRequestRepository requestRepository,
+    IMessageRepository messageRepository,
     IClientUserRepository clientUserRepository,
     ICurrentUserService currentUserService)
     : IRequestHandler<GetRequestsQuery, PaginatedResult<RequestDto>>
@@ -45,7 +46,13 @@ public class GetRequestsQueryHandler(
             currentClientId,
             cancellationToken);
 
-        var dtos = items.Select(r => new RequestDto(
+        var requestList = items.ToList();
+
+        // Batch fetch message counts in a single query instead of loading all messages
+        var messageCounts = await messageRepository.GetCountsByRequestIdsAsync(
+            requestList.Select(r => r.Id), cancellationToken);
+
+        var dtos = requestList.Select(r => new RequestDto(
             r.Id,
             r.Title,
             r.Description,
@@ -59,7 +66,7 @@ public class GetRequestsQueryHandler(
                     r.Participants.First(p => p.Role == ParticipantRole.Creator).User?.Name,
                     r.Participants.First(p => p.Role == ParticipantRole.Creator).User?.AvatarUrl)
                 : null,
-            r.Messages.Count,
+            messageCounts.GetValueOrDefault(r.Id, 0),
             r.CreatedAt,
             r.UpdatedAt
         ));

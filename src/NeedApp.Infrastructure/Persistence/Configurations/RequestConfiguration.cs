@@ -27,6 +27,7 @@ public class RequestConfiguration : IEntityTypeConfiguration<Request>
 
         builder.HasIndex(x => x.ClientId).HasDatabaseName("idx_requests_client");
         builder.HasIndex(x => x.Status).HasDatabaseName("idx_requests_status");
+        builder.HasIndex(x => x.AssignedTo).HasDatabaseName("idx_requests_assigned_to");
         builder.HasQueryFilter(x => !x.IsDeleted);
 
         builder.HasOne(x => x.Client).WithMany(c => c.Requests).HasForeignKey(x => x.ClientId);

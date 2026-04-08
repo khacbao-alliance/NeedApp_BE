@@ -91,9 +91,65 @@ public class NotificationService(
         string? referenceType = null,
         CancellationToken cancellationToken = default)
     {
-        foreach (var userId in userIds.Distinct())
+        var distinctUserIds = userIds.Distinct().ToList();
+        if (distinctUserIds.Count == 0) return;
+
+        // 1. Batch insert all notifications in a single round-trip
+        var notifications = distinctUserIds.Select(userId => new Notification
         {
-            await NotifyAsync(userId, type, title, content, referenceId, referenceType, cancellationToken);
+            UserId = userId,
+            Type = type,
+            Title = title,
+            Content = content,
+            ReferenceId = referenceId,
+            ReferenceType = referenceType,
+            IsRead = false
+        }).ToList();
+
+        await notificationRepository.AddRangeAsync(notifications, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // 2. Push real-time SignalR updates sequentially (DbContext is not thread-safe)
+        foreach (var notification in notifications)
+        {
+            try
+            {
+                var dto = new NotificationDto(
+                    notification.Id, type, title, content,
+                    referenceId, referenceType, false, notification.CreatedAt);
+                await notificationHubService.SendNotificationToUser(notification.UserId, dto);
+                var unreadCount = await notificationRepository.GetUnreadCountAsync(notification.UserId, cancellationToken);
+                await notificationHubService.SendUnreadCountToUser(notification.UserId, unreadCount);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to push notification via SignalR to user {UserId}", notification.UserId);
+            }
+        }
+
+        // 3. Send emails in parallel (pure I/O, no DbContext contention)
+        if (EmailTypes.Contains(type))
+        {
+            try
+            {
+                var users = await userRepository.FindAsync(u => distinctUserIds.Contains(u.Id), cancellationToken);
+                var emailTasks = users.Select(async user =>
+                {
+                    try
+                    {
+                        await emailService.SendNotificationEmailAsync(user.Email, user.Name, title, content, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to send notification email to user {UserId}", user.Id);
+                    }
+                });
+                await Task.WhenAll(emailTasks);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to load users for notification emails");
+            }
         }
     }
 }

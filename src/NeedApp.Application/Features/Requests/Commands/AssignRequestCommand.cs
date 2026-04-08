@@ -123,6 +123,7 @@ public class AssignRequestCommandHandler(
 
         // Build response
         var creator = request.Participants.FirstOrDefault(p => p.Role == ParticipantRole.Creator);
+        var messageCount = await messageRepository.GetCountByRequestIdAsync(request.Id, cancellationToken);
 
         return new RequestDto(
             request.Id,
@@ -135,7 +136,7 @@ public class AssignRequestCommandHandler(
             creator != null
                 ? new RequestUserDto(creator.UserId, creator.User?.Name, creator.User?.AvatarUrl)
                 : null,
-            request.Messages.Count(m => !m.IsDeleted),
+            messageCount,
             request.CreatedAt,
             request.UpdatedAt
         );

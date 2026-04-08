@@ -38,7 +38,7 @@ public class ResetPasswordCommandHandler(
         passwordResetTokenRepository.Update(resetToken);
 
         // Update password
-        user.PasswordHash = passwordHasher.Hash(request.NewPassword);
+        user.PasswordHash = await passwordHasher.HashAsync(request.NewPassword);
         userRepository.Update(user);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

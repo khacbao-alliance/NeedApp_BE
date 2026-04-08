@@ -9,20 +9,19 @@ namespace NeedApp.Infrastructure.Persistence.Repositories;
 public class RequestRepository(AppDbContext context) : BaseRepository<Request>(context), IRequestRepository
 {
     public async Task<IEnumerable<Request>> GetByClientIdAsync(Guid clientId, CancellationToken cancellationToken = default)
-        => await DbSet.Where(r => r.ClientId == clientId).ToListAsync(cancellationToken);
+        => await DbSet.AsNoTracking().Where(r => r.ClientId == clientId).ToListAsync(cancellationToken);
 
     public async Task<IEnumerable<Request>> GetByStatusAsync(RequestStatus status, CancellationToken cancellationToken = default)
-        => await DbSet.Where(r => r.Status == status).ToListAsync(cancellationToken);
+        => await DbSet.AsNoTracking().Where(r => r.Status == status).ToListAsync(cancellationToken);
 
     public async Task<IEnumerable<Request>> GetByAssignedUserAsync(Guid userId, CancellationToken cancellationToken = default)
-        => await DbSet.Where(r => r.AssignedTo == userId).ToListAsync(cancellationToken);
+        => await DbSet.AsNoTracking().Where(r => r.AssignedTo == userId).ToListAsync(cancellationToken);
 
     public async Task<Request?> GetWithDetailsAsync(Guid id, CancellationToken cancellationToken = default)
-        => await DbSet
+        => await DbSet.AsNoTracking()
             .Include(r => r.Client)
             .Include(r => r.AssignedUser)
             .Include(r => r.Participants).ThenInclude(p => p.User)
-            .Include(r => r.Messages)
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
     public async Task<(IEnumerable<Request> Items, int TotalCount)> GetPagedAsync(
@@ -36,11 +35,10 @@ public class RequestRepository(AppDbContext context) : BaseRepository<Request>(c
         Guid? currentClientId,
         CancellationToken cancellationToken = default)
     {
-        var query = DbSet
+        var query = DbSet.AsNoTracking()
             .Include(r => r.Client)
             .Include(r => r.AssignedUser)
             .Include(r => r.Participants).ThenInclude(p => p.User)
-            .Include(r => r.Messages)
             .AsQueryable();
 
         // Role-based filtering: Client only sees requests belonging to their Client company

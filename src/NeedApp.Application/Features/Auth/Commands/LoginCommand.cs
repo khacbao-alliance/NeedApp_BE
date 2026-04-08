@@ -31,7 +31,7 @@ public class LoginCommandHandler(
         var user = await userRepository.GetByEmailAsync(request.Email, cancellationToken)
             ?? throw new UnauthorizedException("Invalid email or password.");
 
-        if (user.PasswordHash is null || !passwordHasher.Verify(request.Password, user.PasswordHash))
+        if (user.PasswordHash is null || !await passwordHasher.VerifyAsync(request.Password, user.PasswordHash))
             throw new UnauthorizedException("Invalid email or password.");
 
         return await GenerateAuthResponseAsync(user, cancellationToken);

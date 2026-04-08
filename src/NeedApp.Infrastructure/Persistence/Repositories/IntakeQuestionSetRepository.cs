@@ -10,12 +10,12 @@ public class IntakeQuestionSetRepository(AppDbContext context)
     private readonly AppDbContext _context = context;
 
     public async Task<IntakeQuestionSet?> GetDefaultAsync(CancellationToken cancellationToken = default)
-        => await _context.IntakeQuestionSets
+        => await _context.IntakeQuestionSets.AsNoTracking()
             .Include(s => s.Questions.OrderBy(q => q.OrderIndex))
             .FirstOrDefaultAsync(s => s.IsDefault && s.IsActive, cancellationToken);
 
     public async Task<IntakeQuestionSet?> GetWithQuestionsAsync(Guid id, CancellationToken cancellationToken = default)
-        => await _context.IntakeQuestionSets
+        => await _context.IntakeQuestionSets.AsNoTracking()
             .Include(s => s.Questions.OrderBy(q => q.OrderIndex))
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
 }

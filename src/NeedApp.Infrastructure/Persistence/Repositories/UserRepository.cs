@@ -9,10 +9,10 @@ namespace NeedApp.Infrastructure.Persistence.Repositories;
 public class UserRepository(AppDbContext context) : BaseRepository<User>(context), IUserRepository
 {
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
-        => await DbSet.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
+        => await DbSet.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
 
     public async Task<User?> GetByIdWithClientAsync(Guid id, CancellationToken cancellationToken = default)
-        => await DbSet
+        => await DbSet.AsNoTracking()
             .Include(u => u.ClientUsers.Where(cu => !cu.IsDeleted))
                 .ThenInclude(cu => cu.Client)
             .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
@@ -24,7 +24,7 @@ public class UserRepository(AppDbContext context) : BaseRepository<User>(context
         UserRole? role,
         CancellationToken cancellationToken = default)
     {
-        var query = DbSet.AsQueryable();
+        var query = DbSet.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(u =>

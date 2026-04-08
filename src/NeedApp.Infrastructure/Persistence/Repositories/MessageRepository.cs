@@ -14,7 +14,7 @@ public class MessageRepository(AppDbContext context)
         Guid requestId, DateTime? cursorDate, Guid? cursorId, int limit = 20,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.Messages
+        var query = _context.Messages.AsNoTracking()
             .Where(m => m.RequestId == requestId)
             .Include(m => m.Sender)
             .Include(m => m.Files)
@@ -39,14 +39,26 @@ public class MessageRepository(AppDbContext context)
     public async Task<int> GetCountByRequestIdAsync(Guid requestId, CancellationToken cancellationToken = default)
         => await _context.Messages.CountAsync(m => m.RequestId == requestId, cancellationToken);
 
+    public async Task<Dictionary<Guid, int>> GetCountsByRequestIdsAsync(
+        IEnumerable<Guid> requestIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = requestIds.ToList();
+        return await _context.Messages
+            .Where(m => ids.Contains(m.RequestId))
+            .GroupBy(m => m.RequestId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count, cancellationToken);
+    }
+
     public async Task<IEnumerable<Message>> GetByTypeAsync(Guid requestId, MessageType type, CancellationToken cancellationToken = default)
-        => await _context.Messages
+        => await _context.Messages.AsNoTracking()
             .Where(m => m.RequestId == requestId && m.Type == type)
             .OrderBy(m => m.CreatedAt)
             .ToListAsync(cancellationToken);
 
-    public async Task<IEnumerable<Message>> GetAllByRequestIdAsync(Guid requestId, CancellationToken cancellationToken = default)
-        => await _context.Messages
+    public async Task<List<Message>> GetAllByRequestIdAsync(Guid requestId, CancellationToken cancellationToken = default)
+        => await _context.Messages.AsNoTracking()
             .Where(m => m.RequestId == requestId && !m.IsDeleted)
             .Include(m => m.Sender)
             .Include(m => m.Files)

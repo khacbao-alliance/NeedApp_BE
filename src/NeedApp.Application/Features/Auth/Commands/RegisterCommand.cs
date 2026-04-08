@@ -37,12 +37,13 @@ public class RegisterCommandHandler(
         if (existing is not null)
             throw new DomainException($"Email '{request.Email}' is already registered.");
 
+        var passwordHash = await passwordHasher.HashAsync(request.Password);
         var user = new User
         {
             Email = request.Email,
             Name = request.Name,
             Role = UserRole.Client,
-            PasswordHash = passwordHasher.Hash(request.Password),
+            PasswordHash = passwordHash,
             HasClient = false
         };
 

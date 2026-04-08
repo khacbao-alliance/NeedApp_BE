@@ -2,6 +2,6 @@ namespace NeedApp.Application.Interfaces;
 
 public interface IPasswordHasher
 {
-    string Hash(string password);
-    bool Verify(string password, string hash);
+    Task<string> HashAsync(string password);
+    Task<bool> VerifyAsync(string password, string hash);
 }

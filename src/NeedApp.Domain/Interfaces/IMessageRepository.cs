@@ -16,12 +16,16 @@ public interface IMessageRepository : IRepository<Message>
         Guid requestId,
         CancellationToken cancellationToken = default);
 
+    Task<Dictionary<Guid, int>> GetCountsByRequestIdsAsync(
+        IEnumerable<Guid> requestIds,
+        CancellationToken cancellationToken = default);
+
     Task<IEnumerable<Message>> GetByTypeAsync(
         Guid requestId,
         MessageType type,
         CancellationToken cancellationToken = default);
 
-    Task<IEnumerable<Message>> GetAllByRequestIdAsync(
+    Task<List<Message>> GetAllByRequestIdAsync(
         Guid requestId,
         CancellationToken cancellationToken = default);
 }

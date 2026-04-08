@@ -10,7 +10,7 @@ public class NotificationRepository(AppDbContext context)
     private readonly AppDbContext _context = context;
 
     public async Task<IEnumerable<Notification>> GetByUserIdAsync(Guid userId, int page, int pageSize, CancellationToken cancellationToken = default)
-        => await _context.Notifications
+        => await _context.Notifications.AsNoTracking()
             .Where(n => n.UserId == userId)
             .OrderByDescending(n => n.CreatedAt)
             .Skip((page - 1) * pageSize)

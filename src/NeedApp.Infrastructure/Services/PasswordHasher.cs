@@ -4,7 +4,9 @@ namespace NeedApp.Infrastructure.Services;
 
 public class PasswordHasher : IPasswordHasher
 {
-    public string Hash(string password) => BCrypt.Net.BCrypt.HashPassword(password);
+    public Task<string> HashAsync(string password) =>
+        Task.Run(() => BCrypt.Net.BCrypt.HashPassword(password));
 
-    public bool Verify(string password, string hash) => BCrypt.Net.BCrypt.Verify(password, hash);
+    public Task<bool> VerifyAsync(string password, string hash) =>
+        Task.Run(() => BCrypt.Net.BCrypt.Verify(password, hash));
 }
