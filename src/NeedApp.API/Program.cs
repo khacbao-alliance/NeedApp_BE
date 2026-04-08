@@ -4,7 +4,9 @@ using NeedApp.API.Middleware;
 using NeedApp.API.Services;
 using NeedApp.Application;
 using NeedApp.Application.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using NeedApp.Infrastructure;
+using NeedApp.Infrastructure.Persistence;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -105,5 +107,12 @@ app.MapControllers();
 // Map SignalR Hub
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<NotificationHub>("/hubs/notifications");
+
+// Auto-run migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
 
 app.Run();
