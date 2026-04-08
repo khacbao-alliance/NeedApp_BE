@@ -10,8 +10,11 @@ public record MessageDto(
     object? Metadata,
     Guid? ReplyToId,
     List<FileAttachmentDto> Files,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    List<ReactionSummaryDto>? Reactions = null
 );
+
+public record ReactionSummaryDto(string Emoji, int Count, List<Guid> UserIds);
 
 public record MessageSenderDto(
     Guid Id,

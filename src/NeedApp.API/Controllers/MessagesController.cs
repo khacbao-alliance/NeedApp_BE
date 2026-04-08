@@ -74,4 +74,34 @@ public class MessagesController(IMediator mediator) : ControllerBase
         await mediator.Send(new DeleteMessageCommand(requestId, id), cancellationToken);
         return NoContent();
     }
+
+    /// <summary>
+    /// Toggle an emoji reaction on a message (add/remove).
+    /// </summary>
+    [HttpPost("{messageId:guid}/reactions")]
+    public async Task<IActionResult> ToggleReaction(
+        Guid requestId,
+        Guid messageId,
+        [FromBody] ToggleReactionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new ToggleReactionCommand(messageId, request.Emoji),
+            cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Mark all messages in a request as read for the current user.
+    /// </summary>
+    [HttpPost("read")]
+    public async Task<IActionResult> MarkRead(
+        Guid requestId,
+        CancellationToken cancellationToken)
+    {
+        await mediator.Send(new MarkReadCommand(requestId), cancellationToken);
+        return NoContent();
+    }
 }
+
+public record ToggleReactionRequest(string Emoji);

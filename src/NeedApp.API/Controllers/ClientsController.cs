@@ -21,6 +21,16 @@ public class ClientsController(IMediator mediator) : ControllerBase
         return CreatedAtAction(nameof(GetClient), new { id = result.Id }, result);
     }
 
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Client")]
+    public async Task<IActionResult> UpdateClient(Guid id, [FromBody] UpdateClientRequest request, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new UpdateClientCommand(id, request.Name, request.Description, request.ContactEmail, request.ContactPhone),
+            cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetClient(Guid id, CancellationToken cancellationToken)
     {

@@ -37,6 +37,14 @@ public class AuthController(IMediator mediator) : ControllerBase
         return Ok(result);
     }
 
+    [HttpPatch("me")]
+    [Authorize]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new UpdateProfileCommand(request.Name), cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPost("logout")]
     [Authorize]
     public async Task<IActionResult> Logout([FromBody] LogoutRequest request, CancellationToken cancellationToken)

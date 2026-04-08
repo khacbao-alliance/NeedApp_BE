@@ -44,3 +44,20 @@ public class MarkAllNotificationsReadCommandHandler(
         await notificationRepository.MarkAllAsReadAsync(userId, cancellationToken);
     }
 }
+
+// ─── Mark Notifications as Read by Reference (Request) ──────────────────────
+
+public record MarkNotificationsReadByReferenceCommand(Guid ReferenceId) : IRequest;
+
+public class MarkNotificationsReadByReferenceCommandHandler(
+    INotificationRepository notificationRepository,
+    ICurrentUserService currentUserService) : IRequestHandler<MarkNotificationsReadByReferenceCommand>
+{
+    public async Task Handle(MarkNotificationsReadByReferenceCommand command, CancellationToken cancellationToken)
+    {
+        var userId = currentUserService.UserId
+            ?? throw new UnauthorizedException("User not authenticated.");
+
+        await notificationRepository.MarkAsReadByReferenceAsync(userId, command.ReferenceId, cancellationToken);
+    }
+}

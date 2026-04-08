@@ -55,6 +55,7 @@ public static class DependencyInjection
         services.Configure<GeminiSettings>(configuration.GetSection(GeminiSettings.SectionName));
 
         // Repositories
+        services.AddScoped(typeof(IRepository<>), typeof(BaseRepository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IClientRepository, ClientRepository>();

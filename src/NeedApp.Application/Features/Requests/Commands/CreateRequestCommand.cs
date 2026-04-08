@@ -28,6 +28,8 @@ public class CreateRequestCommandHandler(
     IRequestParticipantRepository participantRepository,
     IIntakeQuestionSetRepository intakeRepo,
     ICurrentUserService currentUserService,
+    IUserRepository userRepository,
+    INotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateRequestCommand, CreateRequestResponse>
 {
     public async Task<CreateRequestResponse> Handle(CreateRequestCommand command, CancellationToken cancellationToken)
@@ -99,6 +101,19 @@ public class CreateRequestCommandHandler(
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Notify all Admin & Staff about new request
+        var staffAndAdmins = await userRepository.FindAsync(
+            u => u.Role == UserRole.Admin || u.Role == UserRole.Staff, cancellationToken);
+        var staffAdminIds = staffAndAdmins.Select(u => u.Id).Where(id => id != userId);
+        await notificationService.NotifyMultipleAsync(
+            staffAdminIds,
+            NotificationType.NewRequest,
+            "Yêu cầu mới được tạo",
+            $"Client đã tạo yêu cầu mới: \"{command.Title}\"",
+            request.Id,
+            "Request",
+            cancellationToken);
 
         return new CreateRequestResponse(request.Id, request.Title, request.Status, firstQuestion);
     }

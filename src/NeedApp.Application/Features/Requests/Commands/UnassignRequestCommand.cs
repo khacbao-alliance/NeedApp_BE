@@ -25,7 +25,8 @@ public class UnassignRequestCommandHandler(
         var userId = currentUserService.UserId
             ?? throw new UnauthorizedException("User not authenticated.");
 
-        var request = await requestRepository.GetWithDetailsAsync(command.RequestId, cancellationToken)
+        // Load tracked entity for mutation (no includes → no User tracking conflicts)
+        var request = await requestRepository.GetByIdAsync(command.RequestId, cancellationToken)
             ?? throw new NotFoundException(nameof(Request), command.RequestId);
 
         if (!request.AssignedTo.HasValue)
@@ -66,24 +67,27 @@ public class UnassignRequestCommandHandler(
             null, null, null, [], systemMsg.CreatedAt);
         await chatHubService.SendMessageToRequest(command.RequestId, systemMsgDto);
 
-        // Build response
-        var creator = request.Participants.FirstOrDefault(p => p.Role == ParticipantRole.Creator);
-        var messageCount = await messageRepository.GetCountByRequestIdAsync(request.Id, cancellationToken);
+        // Reload with full details (untracked) for response DTO
+        var detailed = await requestRepository.GetWithDetailsAsync(request.Id, cancellationToken)
+            ?? throw new NotFoundException(nameof(Request), request.Id);
+
+        var creator = detailed.Participants.FirstOrDefault(p => p.Role == ParticipantRole.Creator);
+        var messageCount = await messageRepository.GetCountByRequestIdAsync(detailed.Id, cancellationToken);
 
         return new RequestDto(
-            request.Id,
-            request.Title,
-            request.Description,
-            request.Status,
-            request.Priority,
-            new RequestClientDto(request.Client.Id, request.Client.Name),
+            detailed.Id,
+            detailed.Title,
+            detailed.Description,
+            detailed.Status,
+            detailed.Priority,
+            new RequestClientDto(detailed.Client.Id, detailed.Client.Name),
             null, // No assigned user
             creator != null
                 ? new RequestUserDto(creator.UserId, creator.User?.Name, creator.User?.AvatarUrl)
                 : null,
             messageCount,
-            request.CreatedAt,
-            request.UpdatedAt
+            detailed.CreatedAt,
+            detailed.UpdatedAt
         );
     }
 }

@@ -19,4 +19,5 @@ public class Message : BaseEntity
     public Message? ReplyTo { get; set; }
     public ICollection<Message> Replies { get; set; } = [];
     public ICollection<FileAttachment> Files { get; set; } = [];
+    public ICollection<MessageReaction> Reactions { get; set; } = [];
 }

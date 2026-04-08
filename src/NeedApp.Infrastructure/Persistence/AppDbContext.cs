@@ -20,6 +20,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<Invitation> Invitations => Set<Invitation>();
+    public DbSet<MessageReaction> MessageReactions => Set<MessageReaction>();
+    public DbSet<MessageReadReceipt> MessageReadReceipts => Set<MessageReadReceipt>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

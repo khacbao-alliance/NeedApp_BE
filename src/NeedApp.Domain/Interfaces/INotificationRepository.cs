@@ -8,4 +8,5 @@ public interface INotificationRepository : IRepository<Notification>
     Task<int> GetUnreadCountAsync(Guid userId, CancellationToken cancellationToken = default);
     Task MarkAsReadAsync(Guid id, CancellationToken cancellationToken = default);
     Task MarkAllAsReadAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task MarkAsReadByReferenceAsync(Guid userId, Guid referenceId, CancellationToken cancellationToken = default);
 }

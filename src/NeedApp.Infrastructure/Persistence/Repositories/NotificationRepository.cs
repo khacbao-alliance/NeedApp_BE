@@ -30,4 +30,9 @@ public class NotificationRepository(AppDbContext context)
         => await _context.Notifications
             .Where(n => n.UserId == userId && !n.IsRead)
             .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsRead, true), cancellationToken);
+
+    public async Task MarkAsReadByReferenceAsync(Guid userId, Guid referenceId, CancellationToken cancellationToken = default)
+        => await _context.Notifications
+            .Where(n => n.UserId == userId && n.ReferenceId == referenceId && !n.IsRead)
+            .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsRead, true), cancellationToken);
 }

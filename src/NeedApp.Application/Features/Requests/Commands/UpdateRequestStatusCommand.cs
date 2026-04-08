@@ -43,7 +43,8 @@ public class UpdateRequestStatusCommandHandler(
         var userId = currentUserService.UserId
             ?? throw new UnauthorizedException("User not authenticated.");
 
-        var request = await requestRepository.GetWithDetailsAsync(command.RequestId, cancellationToken)
+        // Load tracked entity for mutation (no includes → no User tracking conflicts)
+        var request = await requestRepository.GetByIdAsync(command.RequestId, cancellationToken)
             ?? throw new NotFoundException(nameof(Request), command.RequestId);
 
         // Validate status transition
@@ -82,26 +83,29 @@ public class UpdateRequestStatusCommandHandler(
                 cancellationToken);
         }
 
-        // Build response
-        var creator = request.Participants.FirstOrDefault(p => p.Role == ParticipantRole.Creator);
-        var messageCount = await messageRepository.GetCountByRequestIdAsync(request.Id, cancellationToken);
+        // Reload with full details (untracked) for response DTO
+        var detailed = await requestRepository.GetWithDetailsAsync(request.Id, cancellationToken)
+            ?? throw new NotFoundException(nameof(Request), request.Id);
+
+        var creator = detailed.Participants.FirstOrDefault(p => p.Role == ParticipantRole.Creator);
+        var messageCount = await messageRepository.GetCountByRequestIdAsync(detailed.Id, cancellationToken);
 
         return new RequestDto(
-            request.Id,
-            request.Title,
-            request.Description,
-            request.Status,
-            request.Priority,
-            new RequestClientDto(request.Client.Id, request.Client.Name),
-            request.AssignedUser != null
-                ? new RequestUserDto(request.AssignedUser.Id, request.AssignedUser.Name, request.AssignedUser.AvatarUrl)
+            detailed.Id,
+            detailed.Title,
+            detailed.Description,
+            detailed.Status,
+            detailed.Priority,
+            new RequestClientDto(detailed.Client.Id, detailed.Client.Name),
+            detailed.AssignedUser != null
+                ? new RequestUserDto(detailed.AssignedUser.Id, detailed.AssignedUser.Name, detailed.AssignedUser.AvatarUrl)
                 : null,
             creator != null
                 ? new RequestUserDto(creator.UserId, creator.User?.Name, creator.User?.AvatarUrl)
                 : null,
             messageCount,
-            request.CreatedAt,
-            request.UpdatedAt
+            detailed.CreatedAt,
+            detailed.UpdatedAt
         );
     }
 }

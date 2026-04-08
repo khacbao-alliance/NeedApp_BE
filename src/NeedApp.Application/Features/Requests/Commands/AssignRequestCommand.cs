@@ -36,7 +36,8 @@ public class AssignRequestCommandHandler(
             ?? throw new UnauthorizedException("User not authenticated.");
         var userRole = currentUserService.UserRole;
 
-        var request = await requestRepository.GetWithDetailsAsync(command.RequestId, cancellationToken)
+        // Load tracked entity for mutation (no includes → no User tracking conflicts)
+        var request = await requestRepository.GetByIdAsync(command.RequestId, cancellationToken)
             ?? throw new NotFoundException(nameof(Request), command.RequestId);
 
         // Validate that the target user exists and is Staff or Admin
@@ -67,10 +68,16 @@ public class AssignRequestCommandHandler(
         }
 
         // Update request assignment
-        var previousAssignee = request.AssignedUser?.Name;
         request.AssignedTo = command.StaffUserId;
         request.UpdatedAt = DateTime.UtcNow;
         request.UpdatedBy = userId;
+
+        // Auto-transition to InProgress when staff accepts the request
+        if (request.Status is RequestStatus.Pending or RequestStatus.MissingInfo)
+        {
+            request.Status = RequestStatus.InProgress;
+        }
+
         requestRepository.Update(request);
 
         // Add staff as participant (Assignee role) if not already
@@ -88,15 +95,11 @@ public class AssignRequestCommandHandler(
         }
 
         // System message
-        var assignMessage = previousAssignee != null
-            ? $"Request reassigned from \"{previousAssignee}\" to \"{staffUser.Name}\"."
-            : $"Request assigned to \"{staffUser.Name}\".";
-
         var systemMsg = new Message
         {
             RequestId = request.Id,
             Type = MessageType.System,
-            Content = assignMessage
+            Content = $"Request assigned to \"{staffUser.Name}\"."
         };
         await messageRepository.AddAsync(systemMsg, cancellationToken);
 
@@ -120,25 +123,43 @@ public class AssignRequestCommandHandler(
                 "Request",
                 cancellationToken);
         }
+        else
+        {
+            // Staff self-assigned → notify all Admins
+            var admins = await userRepository.FindAsync(
+                u => u.Role == UserRole.Admin, cancellationToken);
+            var adminIds = admins.Select(u => u.Id);
+            await notificationService.NotifyMultipleAsync(
+                adminIds,
+                Domain.Enums.NotificationType.Assignment,
+                "Staff đã nhận xử lí request",
+                $"\"{staffUser.Name}\" đã nhận xử lí yêu cầu \"{request.Title}\".",
+                request.Id,
+                "Request",
+                cancellationToken);
+        }
 
-        // Build response
-        var creator = request.Participants.FirstOrDefault(p => p.Role == ParticipantRole.Creator);
-        var messageCount = await messageRepository.GetCountByRequestIdAsync(request.Id, cancellationToken);
+        // Reload with full details (untracked) for response DTO
+        var detailed = await requestRepository.GetWithDetailsAsync(request.Id, cancellationToken)
+            ?? throw new NotFoundException(nameof(Request), request.Id);
+
+        var creator = detailed.Participants.FirstOrDefault(p => p.Role == ParticipantRole.Creator);
+        var messageCount = await messageRepository.GetCountByRequestIdAsync(detailed.Id, cancellationToken);
 
         return new RequestDto(
-            request.Id,
-            request.Title,
-            request.Description,
-            request.Status,
-            request.Priority,
-            new RequestClientDto(request.Client.Id, request.Client.Name),
+            detailed.Id,
+            detailed.Title,
+            detailed.Description,
+            detailed.Status,
+            detailed.Priority,
+            new RequestClientDto(detailed.Client.Id, detailed.Client.Name),
             new RequestUserDto(staffUser.Id, staffUser.Name, staffUser.AvatarUrl),
             creator != null
                 ? new RequestUserDto(creator.UserId, creator.User?.Name, creator.User?.AvatarUrl)
                 : null,
             messageCount,
-            request.CreatedAt,
-            request.UpdatedAt
+            detailed.CreatedAt,
+            detailed.UpdatedAt
         );
     }
 }

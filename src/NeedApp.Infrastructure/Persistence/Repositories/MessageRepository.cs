@@ -18,6 +18,7 @@ public class MessageRepository(AppDbContext context)
             .Where(m => m.RequestId == requestId)
             .Include(m => m.Sender)
             .Include(m => m.Files)
+            .Include(m => m.Reactions)
             .OrderBy(m => m.CreatedAt)
             .ThenBy(m => m.Id)
             .AsQueryable();

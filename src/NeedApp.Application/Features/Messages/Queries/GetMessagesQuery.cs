@@ -1,5 +1,6 @@
 using MediatR;
 using NeedApp.Application.DTOs.Message;
+using NeedApp.Application.Interfaces;
 using NeedApp.Domain.Enums;
 using NeedApp.Domain.Exceptions;
 using NeedApp.Domain.Interfaces;
@@ -10,12 +11,37 @@ public record GetMessagesQuery(Guid RequestId, string? Cursor, int Limit = 20) :
 
 public class GetMessagesQueryHandler(
     IMessageRepository messageRepository,
-    IRequestRepository requestRepository) : IRequestHandler<GetMessagesQuery, MessageListResponse>
+    IRequestRepository requestRepository,
+    IClientUserRepository clientUserRepository,
+    IRequestParticipantRepository participantRepository,
+    ICurrentUserService currentUserService) : IRequestHandler<GetMessagesQuery, MessageListResponse>
 {
     public async Task<MessageListResponse> Handle(GetMessagesQuery query, CancellationToken cancellationToken)
     {
-        _ = await requestRepository.GetByIdAsync(query.RequestId, cancellationToken)
+        var userId = currentUserService.UserId
+            ?? throw new UnauthorizedException("User not authenticated.");
+        var userRole = currentUserService.UserRole;
+
+        var request = await requestRepository.GetByIdAsync(query.RequestId, cancellationToken)
             ?? throw new NotFoundException("Request", query.RequestId);
+
+        // Authorization check:
+        // - Admin: can view all requests
+        // - Staff: must be a participant (assigned) of the request
+        // - Client: must belong to the same Client company that owns the request
+        if (userRole == UserRole.Client)
+        {
+            var clientUser = await clientUserRepository.GetByUserIdAsync(userId, cancellationToken);
+            if (clientUser == null || request.ClientId != clientUser.ClientId)
+                throw new NotFoundException("Request", query.RequestId);
+        }
+        else if (userRole == UserRole.Staff)
+        {
+            var isParticipant = await participantRepository.IsParticipantAsync(query.RequestId, userId, cancellationToken);
+            if (!isParticipant)
+                throw new NotFoundException("Request", query.RequestId);
+        }
+        // Admin: no restriction
 
         DateTime? cursorDate = null;
         Guid? cursorId = null;
@@ -40,7 +66,10 @@ public class GetMessagesQueryHandler(
             m.Metadata?.RootElement,
             m.ReplyToId,
             m.Files.Select(f => new FileAttachmentDto(f.Id, f.FileName, f.Url, f.ContentType, f.FileSize)).ToList(),
-            m.CreatedAt
+            m.CreatedAt,
+            m.Reactions.Count > 0
+                ? m.Reactions.GroupBy(r => r.Emoji).Select(g => new ReactionSummaryDto(g.Key, g.Count(), g.Select(r => r.UserId).ToList())).ToList()
+                : null
         )).ToList();
 
         string? nextCursor = null;
@@ -53,3 +82,4 @@ public class GetMessagesQueryHandler(
         return new MessageListResponse(messages, nextCursor, hasMore);
     }
 }
+

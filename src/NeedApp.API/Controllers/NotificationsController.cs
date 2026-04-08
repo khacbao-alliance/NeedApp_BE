@@ -50,4 +50,14 @@ public class NotificationsController(IMediator mediator) : ControllerBase
         await mediator.Send(new MarkAllNotificationsReadCommand(), cancellationToken);
         return NoContent();
     }
+
+    /// <summary>
+    /// Mark all notifications for a specific request as read.
+    /// </summary>
+    [HttpPut("read-by-request/{requestId:guid}")]
+    public async Task<IActionResult> MarkAsReadByRequest(Guid requestId, CancellationToken cancellationToken)
+    {
+        await mediator.Send(new MarkNotificationsReadByReferenceCommand(requestId), cancellationToken);
+        return NoContent();
+    }
 }
