@@ -24,7 +24,7 @@ public class ClientUserRepository(AppDbContext context)
             .FirstOrDefaultAsync(cu => cu.UserId == userId && cu.ClientId == clientId && !cu.IsDeleted, cancellationToken);
 
     public async Task<ClientUser?> GetByUserAndClientIdIncludeDeletedAsync(Guid userId, Guid clientId, CancellationToken cancellationToken = default)
-        => await _context.ClientUsers.AsNoTracking()
+        => await _context.ClientUsers
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(cu => cu.UserId == userId && cu.ClientId == clientId, cancellationToken);
 }

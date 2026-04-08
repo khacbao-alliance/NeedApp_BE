@@ -11,7 +11,7 @@ public class InvitationRepository(AppDbContext context)
     private readonly AppDbContext _context = context;
 
     public async Task<Invitation?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default)
-        => await _context.Invitations.AsNoTracking()
+        => await _context.Invitations
             .Include(i => i.Client)
             .Include(i => i.InvitedUser)
             .Include(i => i.InvitedByUser)
