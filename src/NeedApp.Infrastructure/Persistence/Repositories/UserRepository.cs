@@ -2,12 +2,13 @@ using Microsoft.EntityFrameworkCore;
 using NeedApp.Domain.Entities;
 using NeedApp.Domain.Enums;
 using NeedApp.Domain.Interfaces;
-using NeedApp.Infrastructure.Persistence;
 
 namespace NeedApp.Infrastructure.Persistence.Repositories;
 
 public class UserRepository(AppDbContext context) : BaseRepository<User>(context), IUserRepository
 {
+    private AppDbContext Context => context;
+
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
         => await DbSet.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
 
@@ -24,12 +25,24 @@ public class UserRepository(AppDbContext context) : BaseRepository<User>(context
         UserRole? role,
         CancellationToken cancellationToken = default)
     {
-        var query = DbSet.AsNoTracking().AsQueryable();
+        IQueryable<User> query;
 
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(u =>
-                u.Email.Contains(search) ||
-                (u.Name != null && u.Name.Contains(search)));
+        {
+            var normalizedSearch = "%" + SearchHelper.RemoveDiacritics(search).ToLowerInvariant() + "%";
+            var vnFrom = SearchHelper.SqlTranslateFrom;
+            var vnTo = SearchHelper.SqlTranslateTo;
+
+            query = Context.Users.FromSqlInterpolated(
+                $@"SELECT * FROM users
+                   WHERE translate(lower(email), {vnFrom}, {vnTo}) LIKE {normalizedSearch}
+                      OR translate(lower(COALESCE(name, '')), {vnFrom}, {vnTo}) LIKE {normalizedSearch}")
+                .AsNoTracking();
+        }
+        else
+        {
+            query = DbSet.AsNoTracking();
+        }
 
         if (role is not null)
             query = query.Where(u => u.Role == role);

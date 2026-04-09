@@ -115,4 +115,26 @@ public class FilesController(
 
         return Ok(new { avatarUrl = result.Url });
     }
+    
+    [HttpDelete("avatar")]
+    public async Task<IActionResult> DeleteAvatar(CancellationToken cancellationToken)
+    {
+        var userId = currentUserService.UserId
+            ?? throw new UnauthorizedException("User not authenticated.");
+
+        var user = await userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new NotFoundException(nameof(User), userId);
+
+        if (string.IsNullOrEmpty(user.AvatarPublicId))
+            return NoContent();
+
+        await cloudinaryService.DeleteFileAsync(user.AvatarPublicId);
+
+        user.AvatarUrl = null;
+        user.AvatarPublicId = null;
+        userRepository.Update(user);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return NoContent();
+    }
 }
