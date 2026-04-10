@@ -13,7 +13,7 @@ public class RequestParticipantRepository(AppDbContext context)
         => await _context.RequestParticipants.AnyAsync(p => p.RequestId == requestId && p.UserId == userId, cancellationToken);
 
     public async Task<IEnumerable<RequestParticipant>> GetByRequestIdAsync(Guid requestId, CancellationToken cancellationToken = default)
-        => await _context.RequestParticipants.AsNoTracking()
+        => await _context.RequestParticipants
             .Include(p => p.User)
             .Where(p => p.RequestId == requestId)
             .ToListAsync(cancellationToken);

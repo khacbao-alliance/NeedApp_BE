@@ -40,6 +40,10 @@ public class AssignRequestCommandHandler(
         var request = await requestRepository.GetByIdAsync(command.RequestId, cancellationToken)
             ?? throw new NotFoundException(nameof(Request), command.RequestId);
 
+        // Cannot assign during Draft or Intake phase — must reach Pending first
+        if (request.Status is RequestStatus.Draft or RequestStatus.Intake)
+            throw new DomainException("Cannot assign staff while request is in Draft or Intake phase. Wait until the intake is complete.");
+
         // Validate that the target user exists and is Staff or Admin
         var staffUser = await userRepository.GetByIdAsync(command.StaffUserId, cancellationToken)
             ?? throw new NotFoundException(nameof(User), command.StaffUserId);
