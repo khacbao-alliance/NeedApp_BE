@@ -14,7 +14,7 @@ public class EmailService(IOptions<SmtpSettings> smtpOptions, ILogger<EmailServi
     public async Task SendWelcomeEmailAsync(string toEmail, string? userName, CancellationToken cancellationToken = default)
     {
         var displayName = userName ?? "bạn";
-        var subject = "🎉 Chào mừng bạn đến với NeedApp!";
+        var subject = "Chào mừng bạn đến với NeedApp!";
         var body = BuildWelcomeEmailHtml(displayName);
 
         await SendEmailAsync(toEmail, subject, body, cancellationToken);
@@ -24,11 +24,21 @@ public class EmailService(IOptions<SmtpSettings> smtpOptions, ILogger<EmailServi
     public async Task SendPasswordResetOtpAsync(string toEmail, string? userName, string otpCode, CancellationToken cancellationToken = default)
     {
         var displayName = userName ?? "bạn";
-        var subject = "🔐 Mã OTP đặt lại mật khẩu - NeedApp";
+        var subject = "Mã OTP đặt lại mật khẩu - NeedApp";
         var body = BuildPasswordResetEmailHtml(displayName, otpCode);
 
         await SendEmailAsync(toEmail, subject, body, cancellationToken);
         logger.LogInformation("Password reset OTP email sent to {Email}", toEmail);
+    }
+
+    public async Task SendNotificationEmailAsync(string toEmail, string? userName, string title, string content, CancellationToken cancellationToken = default)
+    {
+        var displayName = userName ?? "bạn";
+        var subject = $"{title} - NeedApp";
+        var body = BuildNotificationEmailHtml(displayName, title, content);
+
+        await SendEmailAsync(toEmail, subject, body, cancellationToken);
+        logger.LogInformation("Notification email sent to {Email}: {Title}", toEmail, title);
     }
 
     private async Task SendEmailAsync(string toEmail, string subject, string htmlBody, CancellationToken cancellationToken)
@@ -52,169 +62,267 @@ public class EmailService(IOptions<SmtpSettings> smtpOptions, ILogger<EmailServi
         await smtpClient.SendMailAsync(message, cancellationToken);
     }
 
-    private static string BuildWelcomeEmailHtml(string displayName)
+    private string BuildEmailWrapper(string headerSubtitle, string bodyContent)
     {
+        var logoUrl = _smtp.LogoUrl;
+        var appUrl = _smtp.AppUrl;
+        var year = DateTime.UtcNow.Year;
+
         return $"""
         <!DOCTYPE html>
         <html lang="vi">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>NeedApp</title>
         </head>
-        <body style="margin:0;padding:0;font-family:'Segoe UI',Roboto,Arial,sans-serif;background-color:#f4f7fa;">
-            <div style="max-width:600px;margin:40px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-                <!-- Header -->
-                <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6,#a855f7);padding:40px 32px;text-align:center;">
-                    <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">NeedApp</h1>
-                    <p style="color:rgba(255,255,255,0.9);margin:8px 0 0;font-size:14px;">Client Requirement Management</p>
-                </div>
+        <body style="margin:0;padding:0;background-color:#f0f4f8;-webkit-font-smoothing:antialiased;">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f0f4f8;">
+                <tr>
+                    <td align="center" style="padding:32px 16px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.06);">
 
-                <!-- Body -->
-                <div style="padding:40px 32px;">
-                    <h2 style="color:#1e293b;margin:0 0 16px;font-size:22px;">Xin chào {displayName}! 👋</h2>
-                    <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 20px;">
-                        Chúc mừng bạn đã tạo tài khoản thành công trên <strong>NeedApp</strong>!
-                    </p>
-                    <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 20px;">
-                        NeedApp giúp bạn quản lý yêu cầu một cách hiệu quả với hệ thống chat trực tiếp,
-                        theo dõi trạng thái và nhận thông báo kịp thời.
-                    </p>
+                            <!-- Header with Logo -->
+                            <tr>
+                                <td style="background-color:#0d3b82;padding:28px 40px;text-align:center;">
+                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                                        <tr>
+                                            <td align="center">
+                                                <img src="{logoUrl}" alt="NeedApp" width="180" style="display:block;max-width:180px;height:auto;" />
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td align="center" style="padding-top:12px;">
+                                                <span style="font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:13px;color:rgba(255,255,255,0.75);letter-spacing:0.5px;">{headerSubtitle}</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
 
-                    <div style="background:#f8fafc;border-radius:12px;padding:20px;margin:24px 0;">
-                        <p style="color:#334155;font-size:14px;font-weight:600;margin:0 0 12px;">🚀 Bắt đầu ngay:</p>
-                        <ul style="color:#475569;font-size:14px;line-height:2;margin:0;padding-left:20px;">
-                            <li>Tạo yêu cầu mới từ dashboard</li>
-                            <li>Chat trực tiếp với đội ngũ hỗ trợ</li>
-                            <li>Theo dõi tiến độ xử lý</li>
-                        </ul>
-                    </div>
+                            <!-- Accent line -->
+                            <tr>
+                                <td style="height:3px;background:linear-gradient(90deg,#1a56db,#3b82f6,#60a5fa);font-size:0;line-height:0;">&nbsp;</td>
+                            </tr>
 
-                    <p style="color:#475569;font-size:15px;line-height:1.7;margin:0;">
-                        Nếu cần hỗ trợ, hãy liên hệ với chúng tôi bất cứ lúc nào.
-                    </p>
-                </div>
+                            <!-- Body Content -->
+                            <tr>
+                                <td style="padding:36px 40px;font-family:'Segoe UI',Roboto,Arial,sans-serif;">
+                                    {bodyContent}
+                                </td>
+                            </tr>
 
-                <!-- Footer -->
-                <div style="background:#f8fafc;padding:24px 32px;text-align:center;border-top:1px solid #e2e8f0;">
-                    <p style="color:#94a3b8;font-size:12px;margin:0;">
-                        © {DateTime.UtcNow.Year} NeedApp. All rights reserved.
-                    </p>
-                </div>
-            </div>
+                            <!-- Divider -->
+                            <tr>
+                                <td style="padding:0 40px;">
+                                    <div style="height:1px;background-color:#e5e7eb;"></div>
+                                </td>
+                            </tr>
+
+                            <!-- Footer -->
+                            <tr>
+                                <td style="padding:24px 40px 32px;text-align:center;font-family:'Segoe UI',Roboto,Arial,sans-serif;">
+                                    <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">
+                                        Đây là email tự động từ hệ thống NeedApp.
+                                    </p>
+                                    <p style="margin:0 0 12px;font-size:13px;color:#6b7280;">
+                                        Nếu cần hỗ trợ, vui lòng liên hệ qua ứng dụng hoặc trả lời email này.
+                                    </p>
+                                    <a href="{appUrl}" style="display:inline-block;font-size:13px;color:#1a56db;text-decoration:none;font-weight:600;">needapp.netlify.app</a>
+                                    <p style="margin:16px 0 0;font-size:11px;color:#9ca3af;">
+                                        &copy; {year} NeedApp &mdash; Client Requirement Management. All rights reserved.
+                                    </p>
+                                </td>
+                            </tr>
+
+                        </table>
+                    </td>
+                </tr>
+            </table>
         </body>
         </html>
         """;
     }
 
-    private static string BuildPasswordResetEmailHtml(string displayName, string otpCode)
+    private string BuildWelcomeEmailHtml(string displayName)
     {
-        return $"""
-        <!DOCTYPE html>
-        <html lang="vi">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="margin:0;padding:0;font-family:'Segoe UI',Roboto,Arial,sans-serif;background-color:#f4f7fa;">
-            <div style="max-width:600px;margin:40px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-                <!-- Header -->
-                <div style="background:linear-gradient(135deg,#ef4444,#f97316,#eab308);padding:40px 32px;text-align:center;">
-                    <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">NeedApp</h1>
-                    <p style="color:rgba(255,255,255,0.9);margin:8px 0 0;font-size:14px;">Đặt lại mật khẩu</p>
-                </div>
+        var appUrl = _smtp.AppUrl;
+        var bodyContent = $"""
+                                    <h2 style="margin:0 0 8px;font-size:22px;color:#111827;font-weight:700;">Chào mừng đến với NeedApp!</h2>
+                                    <p style="margin:0 0 24px;font-size:15px;color:#6b7280;line-height:1.5;">Xin chào <strong style="color:#111827;">{displayName}</strong>,</p>
 
-                <!-- Body -->
-                <div style="padding:40px 32px;">
-                    <h2 style="color:#1e293b;margin:0 0 16px;font-size:22px;">Xin chào {displayName}! 🔐</h2>
-                    <p style="color:#475569;font-size:15px;line-height:1.7;margin:0 0 20px;">
-                        Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.
-                        Sử dụng mã OTP bên dưới để hoàn tất:
-                    </p>
+                                    <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.7;">
+                                        Tài khoản của bạn đã được tạo thành công. Bạn hiện có thể sử dụng đầy đủ các tính năng
+                                        quản lý yêu cầu trên NeedApp.
+                                    </p>
 
-                    <!-- OTP Box -->
-                    <div style="text-align:center;margin:32px 0;">
-                        <div style="display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:16px;padding:24px 48px;">
-                            <span style="font-size:36px;font-weight:800;color:#ffffff;letter-spacing:12px;font-family:'Courier New',monospace;">
-                                {otpCode}
-                            </span>
-                        </div>
-                    </div>
+                                    <!-- Feature cards -->
+                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:24px 0;">
+                                        <tr>
+                                            <td style="background-color:#eff6ff;border-radius:8px;padding:20px;">
+                                                <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                                                    <tr>
+                                                        <td width="36" valign="top" style="padding-right:12px;">
+                                                            <div style="width:32px;height:32px;background-color:#1a56db;border-radius:8px;text-align:center;line-height:32px;font-size:16px;color:#ffffff;">&#9998;</div>
+                                                        </td>
+                                                        <td style="font-family:'Segoe UI',Roboto,Arial,sans-serif;">
+                                                            <p style="margin:0;font-size:14px;font-weight:600;color:#1e40af;">Tạo yêu cầu</p>
+                                                            <p style="margin:4px 0 0;font-size:13px;color:#6b7280;line-height:1.5;">Gửi yêu cầu mới từ dashboard một cách nhanh chóng.</p>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                        <tr><td style="height:12px;"></td></tr>
+                                        <tr>
+                                            <td style="background-color:#eff6ff;border-radius:8px;padding:20px;">
+                                                <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                                                    <tr>
+                                                        <td width="36" valign="top" style="padding-right:12px;">
+                                                            <div style="width:32px;height:32px;background-color:#1a56db;border-radius:8px;text-align:center;line-height:32px;font-size:16px;color:#ffffff;">&#128172;</div>
+                                                        </td>
+                                                        <td style="font-family:'Segoe UI',Roboto,Arial,sans-serif;">
+                                                            <p style="margin:0;font-size:14px;font-weight:600;color:#1e40af;">Chat trực tiếp</p>
+                                                            <p style="margin:4px 0 0;font-size:13px;color:#6b7280;line-height:1.5;">Trao đổi trực tiếp với đội ngũ xử lý yêu cầu.</p>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                        <tr><td style="height:12px;"></td></tr>
+                                        <tr>
+                                            <td style="background-color:#eff6ff;border-radius:8px;padding:20px;">
+                                                <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                                                    <tr>
+                                                        <td width="36" valign="top" style="padding-right:12px;">
+                                                            <div style="width:32px;height:32px;background-color:#1a56db;border-radius:8px;text-align:center;line-height:32px;font-size:16px;color:#ffffff;">&#128276;</div>
+                                                        </td>
+                                                        <td style="font-family:'Segoe UI',Roboto,Arial,sans-serif;">
+                                                            <p style="margin:0;font-size:14px;font-weight:600;color:#1e40af;">Theo dõi & thông báo</p>
+                                                            <p style="margin:4px 0 0;font-size:13px;color:#6b7280;line-height:1.5;">Nhận cập nhật tức thì về trạng thái xử lý.</p>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
 
-                    <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:12px;padding:16px;margin:24px 0;">
-                        <p style="color:#92400e;font-size:14px;margin:0;">
-                            ⏰ <strong>Mã OTP có hiệu lực trong 15 phút.</strong><br>
-                            Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.
-                        </p>
-                    </div>
-
-                    <p style="color:#475569;font-size:15px;line-height:1.7;margin:0;">
-                        Vì lý do bảo mật, không chia sẻ mã OTP này với bất kỳ ai.
-                    </p>
-                </div>
-
-                <!-- Footer -->
-                <div style="background:#f8fafc;padding:24px 32px;text-align:center;border-top:1px solid #e2e8f0;">
-                    <p style="color:#94a3b8;font-size:12px;margin:0;">
-                        © {DateTime.UtcNow.Year} NeedApp. All rights reserved.
-                    </p>
-                </div>
-            </div>
-        </body>
-        </html>
+                                    <!-- CTA Button -->
+                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:28px 0 0;">
+                                        <tr>
+                                            <td align="center">
+                                                <a href="{appUrl}" style="display:inline-block;background-color:#1a56db;color:#ffffff;font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;font-weight:600;padding:14px 36px;border-radius:8px;text-decoration:none;letter-spacing:0.3px;">
+                                                    Truy cập NeedApp
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </table>
         """;
+
+        return BuildEmailWrapper("Client Requirement Management", bodyContent);
     }
 
-    public async Task SendNotificationEmailAsync(string toEmail, string? userName, string title, string content, CancellationToken cancellationToken = default)
+    private string BuildPasswordResetEmailHtml(string displayName, string otpCode)
     {
-        var displayName = userName ?? "bạn";
-        var subject = $"🔔 {title} - NeedApp";
-        var body = BuildNotificationEmailHtml(displayName, title, content);
+        var bodyContent = $"""
+                                    <h2 style="margin:0 0 8px;font-size:22px;color:#111827;font-weight:700;">Đặt lại mật khẩu</h2>
+                                    <p style="margin:0 0 24px;font-size:15px;color:#6b7280;line-height:1.5;">Xin chào <strong style="color:#111827;">{displayName}</strong>,</p>
 
-        await SendEmailAsync(toEmail, subject, body, cancellationToken);
-        logger.LogInformation("Notification email sent to {Email}: {Title}", toEmail, title);
+                                    <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.7;">
+                                        Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.
+                                        Vui lòng sử dụng mã OTP bên dưới để xác nhận:
+                                    </p>
+
+                                    <!-- OTP Code -->
+                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:28px 0;">
+                                        <tr>
+                                            <td align="center">
+                                                <table role="presentation" cellpadding="0" cellspacing="0">
+                                                    <tr>
+                                                        <td style="background-color:#0d3b82;border-radius:12px;padding:20px 48px;">
+                                                            <span style="font-family:'Courier New',Consolas,monospace;font-size:36px;font-weight:800;color:#ffffff;letter-spacing:10px;">{otpCode}</span>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <!-- Warning box -->
+                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 20px;">
+                                        <tr>
+                                            <td style="background-color:#fef9ec;border:1px solid #f5d78e;border-radius:8px;padding:16px 20px;">
+                                                <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                                                    <tr>
+                                                        <td width="24" valign="top" style="padding-right:10px;font-size:16px;">&#9200;</td>
+                                                        <td style="font-family:'Segoe UI',Roboto,Arial,sans-serif;">
+                                                            <p style="margin:0;font-size:13px;color:#92400e;line-height:1.6;">
+                                                                <strong>Mã OTP có hiệu lực trong 15 phút.</strong><br/>
+                                                                Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.
+                                                            </p>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <!-- Security note -->
+                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0;">
+                                        <tr>
+                                            <td style="background-color:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px 20px;">
+                                                <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                                                    <tr>
+                                                        <td width="24" valign="top" style="padding-right:10px;font-size:16px;">&#128274;</td>
+                                                        <td style="font-family:'Segoe UI',Roboto,Arial,sans-serif;">
+                                                            <p style="margin:0;font-size:13px;color:#991b1b;line-height:1.6;">
+                                                                <strong>Lưu ý bảo mật:</strong> Không chia sẻ mã OTP này với bất kỳ ai. NeedApp sẽ không bao giờ yêu cầu bạn cung cấp mã qua điện thoại hoặc tin nhắn.
+                                                            </p>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+        """;
+
+        return BuildEmailWrapper("Xác nhận đặt lại mật khẩu", bodyContent);
     }
 
-    private static string BuildNotificationEmailHtml(string displayName, string title, string content)
+    private string BuildNotificationEmailHtml(string displayName, string title, string content)
     {
-        return $"""
-        <!DOCTYPE html>
-        <html lang="vi">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="margin:0;padding:0;font-family:'Segoe UI',Roboto,Arial,sans-serif;background-color:#f4f7fa;">
-            <div style="max-width:600px;margin:40px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-                <!-- Header -->
-                <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6,#a855f7);padding:40px 32px;text-align:center;">
-                    <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">NeedApp</h1>
-                    <p style="color:rgba(255,255,255,0.9);margin:8px 0 0;font-size:14px;">Thông báo mới</p>
-                </div>
+        var appUrl = _smtp.AppUrl;
+        var bodyContent = $"""
+                                    <h2 style="margin:0 0 8px;font-size:22px;color:#111827;font-weight:700;">Thông báo mới</h2>
+                                    <p style="margin:0 0 24px;font-size:15px;color:#6b7280;line-height:1.5;">Xin chào <strong style="color:#111827;">{displayName}</strong>,</p>
 
-                <!-- Body -->
-                <div style="padding:40px 32px;">
-                    <h2 style="color:#1e293b;margin:0 0 16px;font-size:22px;">Xin chào {displayName}! 🔔</h2>
+                                    <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.7;">
+                                        Bạn có một thông báo mới từ hệ thống NeedApp:
+                                    </p>
 
-                    <div style="background:#f0f4ff;border-left:4px solid #6366f1;border-radius:0 12px 12px 0;padding:20px;margin:24px 0;">
-                        <p style="color:#4338ca;font-size:16px;font-weight:600;margin:0 0 8px;">{title}</p>
-                        <p style="color:#475569;font-size:14px;line-height:1.6;margin:0;">{content}</p>
-                    </div>
+                                    <!-- Notification card -->
+                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 24px;">
+                                        <tr>
+                                            <td style="border-left:4px solid #1a56db;background-color:#f8fafc;border-radius:0 8px 8px 0;padding:20px 24px;">
+                                                <p style="margin:0 0 8px;font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:16px;font-weight:700;color:#0d3b82;">{title}</p>
+                                                <p style="margin:0;font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:14px;color:#4b5563;line-height:1.7;">{content}</p>
+                                            </td>
+                                        </tr>
+                                    </table>
 
-                    <p style="color:#475569;font-size:15px;line-height:1.7;margin:16px 0 0;">
-                        Đăng nhập vào NeedApp để xem chi tiết.
-                    </p>
-                </div>
-
-                <!-- Footer -->
-                <div style="background:#f8fafc;padding:24px 32px;text-align:center;border-top:1px solid #e2e8f0;">
-                    <p style="color:#94a3b8;font-size:12px;margin:0;">
-                        © {DateTime.UtcNow.Year} NeedApp. All rights reserved.
-                    </p>
-                </div>
-            </div>
-        </body>
-        </html>
+                                    <!-- CTA Button -->
+                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:4px 0 0;">
+                                        <tr>
+                                            <td align="center">
+                                                <a href="{appUrl}" style="display:inline-block;background-color:#1a56db;color:#ffffff;font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;font-weight:600;padding:14px 36px;border-radius:8px;text-decoration:none;letter-spacing:0.3px;">
+                                                    Xem chi tiết
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </table>
         """;
+
+        return BuildEmailWrapper("Thông báo", bodyContent);
     }
 }
 
