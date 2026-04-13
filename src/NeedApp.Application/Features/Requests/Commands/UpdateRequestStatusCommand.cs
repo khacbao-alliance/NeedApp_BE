@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using NeedApp.Application.DTOs.Notification;
 using NeedApp.Application.DTOs.Request;
 using NeedApp.Application.Interfaces;
 using NeedApp.Domain.Entities;
@@ -80,6 +81,7 @@ public class UpdateRequestStatusCommandHandler(
                 $"Request \"{request.Title}\" đã chuyển từ \"{oldStatus}\" sang \"{command.Status}\".",
                 request.Id,
                 "Request",
+                new StatusChangeMetadata(request.Title, oldStatus.ToString(), command.Status.ToString()),
                 cancellationToken);
         }
 

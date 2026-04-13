@@ -19,6 +19,7 @@ public interface INotificationService
         string content,
         Guid? referenceId = null,
         string? referenceType = null,
+        object? metadata = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -31,5 +32,6 @@ public interface INotificationService
         string content,
         Guid? referenceId = null,
         string? referenceType = null,
+        object? metadata = null,
         CancellationToken cancellationToken = default);
 }

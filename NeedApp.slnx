@@ -3,4 +3,5 @@
   <Project Path="src/NeedApp.Application/NeedApp.Application.csproj" />
   <Project Path="src/NeedApp.Infrastructure/NeedApp.Infrastructure.csproj" />
   <Project Path="src/NeedApp.API/NeedApp.API.csproj" />
+  <Project Path="src/NeedApp.Tests/NeedApp.Tests.csproj" />
 </Solution>

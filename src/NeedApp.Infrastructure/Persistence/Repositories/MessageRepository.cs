@@ -38,7 +38,10 @@ public class MessageRepository(AppDbContext context)
     }
 
     public async Task<int> GetCountByRequestIdAsync(Guid requestId, CancellationToken cancellationToken = default)
-        => await _context.Messages.CountAsync(m => m.RequestId == requestId, cancellationToken);
+        => await _context.Messages.CountAsync(
+            m => m.RequestId == requestId
+              && (m.Type == MessageType.Text || m.Type == MessageType.File),
+            cancellationToken);
 
     public async Task<Dictionary<Guid, int>> GetCountsByRequestIdsAsync(
         IEnumerable<Guid> requestIds,
@@ -46,7 +49,8 @@ public class MessageRepository(AppDbContext context)
     {
         var ids = requestIds.ToList();
         return await _context.Messages
-            .Where(m => ids.Contains(m.RequestId))
+            .Where(m => ids.Contains(m.RequestId)
+                     && (m.Type == MessageType.Text || m.Type == MessageType.File))
             .GroupBy(m => m.RequestId)
             .Select(g => new { g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Key, x => x.Count, cancellationToken);
