@@ -76,7 +76,8 @@ builder.Services.AddCors(options =>
                 "http://localhost:3000",
                 "http://localhost:5173",
                 "https://localhost:3000",
-                "https://needanapp.netlify.app"
+                "https://needanapp.netlify.app",
+                "https://need-app-fe.vercel.app"
             )
             .AllowAnyMethod()
             .AllowAnyHeader()
