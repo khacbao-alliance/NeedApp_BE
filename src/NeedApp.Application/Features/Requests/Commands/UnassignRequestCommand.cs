@@ -66,6 +66,8 @@ public class UnassignRequestCommandHandler(
             systemMsg.Id, systemMsg.Type, systemMsg.Content,
             null, null, null, [], systemMsg.CreatedAt);
         await chatHubService.SendMessageToRequest(command.RequestId, systemMsgDto);
+        // Broadcast the current status so all clients refresh request header (assignedUser cleared)
+        await chatHubService.SendRequestStatusChanged(command.RequestId, request.Status.ToString());
 
         // Reload with full details (untracked) for response DTO
         var detailed = await requestRepository.GetWithDetailsAsync(request.Id, cancellationToken)

@@ -39,7 +39,9 @@ public class GetMessagesQueryHandler(
         {
             var isParticipant = await participantRepository.IsParticipantAsync(query.RequestId, userId, cancellationToken);
             if (!isParticipant)
-                throw new NotFoundException("Request", query.RequestId);
+                // 403 — request exists but staff is not yet a participant (not assigned).
+                // FE uses 403 to distinguish "not assigned" from "not found" (404).
+                throw new UnauthorizedException("You are not assigned to this request.");
         }
         // Admin: no restriction
 

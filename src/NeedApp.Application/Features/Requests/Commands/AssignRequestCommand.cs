@@ -115,6 +115,8 @@ public class AssignRequestCommandHandler(
             systemMsg.Id, systemMsg.Type, systemMsg.Content,
             null, null, null, [], systemMsg.CreatedAt);
         await chatHubService.SendMessageToRequest(command.RequestId, systemMsgDto);
+        // Broadcast status change (auto-transitioned to InProgress) so chat header updates in real-time
+        await chatHubService.SendRequestStatusChanged(command.RequestId, request.Status.ToString());
 
         // Notify assigned staff (critical — sends email)
         if (command.StaffUserId != userId)

@@ -27,6 +27,7 @@ public class UpdateRequestStatusCommandHandler(
     IRequestRepository requestRepository,
     IMessageRepository messageRepository,
     ICurrentUserService currentUserService,
+    IChatHubService chatHubService,
     INotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<UpdateRequestStatusCommand, RequestDto>
 {
@@ -70,6 +71,9 @@ public class UpdateRequestStatusCommandHandler(
         }, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Broadcast status change to all clients in the chat room (real-time)
+        await chatHubService.SendRequestStatusChanged(command.RequestId, command.Status.ToString());
 
         // Notify request creator about status change (critical — sends email)
         if (request.CreatedBy.HasValue && request.CreatedBy.Value != userId)

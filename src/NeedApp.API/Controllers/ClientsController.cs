@@ -81,4 +81,28 @@ public class ClientsController(IMediator mediator) : ControllerBase
         await mediator.Send(new RemoveClientMemberCommand(clientId, userId), cancellationToken);
         return NoContent();
     }
+
+    /// <summary>
+    /// Owner deletes the entire client organization.
+    /// All members lose their membership (HasClient reset to false).
+    /// </summary>
+    [HttpDelete("me")]
+    [Authorize(Roles = "Client")]
+    public async Task<IActionResult> DeleteMyClient(CancellationToken cancellationToken)
+    {
+        await mediator.Send(new DeleteClientCommand(), cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Member leaves the client organization.
+    /// Owners cannot leave — they must delete the client instead.
+    /// </summary>
+    [HttpDelete("me/leave")]
+    [Authorize(Roles = "Client")]
+    public async Task<IActionResult> LeaveClient(CancellationToken cancellationToken)
+    {
+        await mediator.Send(new LeaveClientCommand(), cancellationToken);
+        return NoContent();
+    }
 }
