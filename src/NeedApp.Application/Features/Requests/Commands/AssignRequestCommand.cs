@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using NeedApp.Application.DTOs.Notification;
 using NeedApp.Application.DTOs.Request;
 using NeedApp.Application.Interfaces;
 using NeedApp.Domain.Entities;
@@ -125,6 +126,7 @@ public class AssignRequestCommandHandler(
                 $"Yêu cầu \"{request.Title}\" đã được giao cho bạn.",
                 request.Id,
                 "Request",
+                new AssignmentToMeMetadata(request.Title),
                 cancellationToken);
         }
         else
@@ -140,6 +142,7 @@ public class AssignRequestCommandHandler(
                 $"\"{staffUser.Name}\" đã nhận xử lí yêu cầu \"{request.Title}\".",
                 request.Id,
                 "Request",
+                new AssignmentSelfAcceptMetadata(request.Title, staffUser.Name ?? "Unknown"),
                 cancellationToken);
         }
 

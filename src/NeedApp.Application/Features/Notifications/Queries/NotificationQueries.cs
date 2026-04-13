@@ -22,7 +22,7 @@ public class GetNotificationsQueryHandler(
         var notifications = await notificationRepository.GetByUserIdAsync(userId, request.Page, request.PageSize, cancellationToken);
 
         return notifications.Select(n => new NotificationDto(
-            n.Id, n.Type, n.Title, n.Content,
+            n.Id, n.Type, n.Title, n.Content, n.Metadata,
             n.ReferenceId, n.ReferenceType, n.IsRead, n.CreatedAt
         ));
     }

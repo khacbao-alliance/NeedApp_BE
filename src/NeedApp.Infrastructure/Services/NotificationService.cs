@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NeedApp.Application.DTOs.Notification;
 using NeedApp.Application.Interfaces;
@@ -31,8 +32,11 @@ public class NotificationService(
         string content,
         Guid? referenceId = null,
         string? referenceType = null,
+        object? metadata = null,
         CancellationToken cancellationToken = default)
     {
+        var metadataJson = metadata != null ? JsonSerializer.Serialize(metadata) : null;
+
         // 1. Save to DB
         var notification = new Notification
         {
@@ -40,6 +44,7 @@ public class NotificationService(
             Type = type,
             Title = title,
             Content = content,
+            Metadata = metadataJson,
             ReferenceId = referenceId,
             ReferenceType = referenceType,
             IsRead = false
@@ -48,7 +53,7 @@ public class NotificationService(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var dto = new NotificationDto(
-            notification.Id, type, title, content,
+            notification.Id, type, title, content, metadataJson,
             referenceId, referenceType, false, notification.CreatedAt);
 
         // 2. Push via SignalR (real-time)
@@ -89,10 +94,13 @@ public class NotificationService(
         string content,
         Guid? referenceId = null,
         string? referenceType = null,
+        object? metadata = null,
         CancellationToken cancellationToken = default)
     {
         var distinctUserIds = userIds.Distinct().ToList();
         if (distinctUserIds.Count == 0) return;
+
+        var metadataJson = metadata != null ? JsonSerializer.Serialize(metadata) : null;
 
         // 1. Batch insert all notifications in a single round-trip
         var notifications = distinctUserIds.Select(userId => new Notification
@@ -101,6 +109,7 @@ public class NotificationService(
             Type = type,
             Title = title,
             Content = content,
+            Metadata = metadataJson,
             ReferenceId = referenceId,
             ReferenceType = referenceType,
             IsRead = false
@@ -115,7 +124,7 @@ public class NotificationService(
             try
             {
                 var dto = new NotificationDto(
-                    notification.Id, type, title, content,
+                    notification.Id, type, title, content, metadataJson,
                     referenceId, referenceType, false, notification.CreatedAt);
                 await notificationHubService.SendNotificationToUser(notification.UserId, dto);
                 var unreadCount = await notificationRepository.GetUnreadCountAsync(notification.UserId, cancellationToken);

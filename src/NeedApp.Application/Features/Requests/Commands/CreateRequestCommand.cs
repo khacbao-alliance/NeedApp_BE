@@ -2,6 +2,7 @@ using System.Text.Json;
 using FluentValidation;
 using MediatR;
 using NeedApp.Application.DTOs.Message;
+using NeedApp.Application.DTOs.Notification;
 using NeedApp.Application.DTOs.Request;
 using NeedApp.Application.Interfaces;
 using NeedApp.Domain.Entities;
@@ -113,6 +114,7 @@ public class CreateRequestCommandHandler(
             $"Client đã tạo yêu cầu mới: \"{command.Title}\"",
             request.Id,
             "Request",
+            new NewRequestMetadata(command.Title),
             cancellationToken);
 
         return new CreateRequestResponse(request.Id, request.Title, request.Status, firstQuestion);

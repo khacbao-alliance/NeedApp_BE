@@ -7,6 +7,7 @@ public record NotificationDto(
     NotificationType Type,
     string? Title,
     string? Content,
+    string? Metadata,
     Guid? ReferenceId,
     string? ReferenceType,
     bool IsRead,

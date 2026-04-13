@@ -2,6 +2,7 @@ using System.Text.Json;
 using FluentValidation;
 using MediatR;
 using NeedApp.Application.DTOs.Message;
+using NeedApp.Application.DTOs.Notification;
 using NeedApp.Application.Interfaces;
 using NeedApp.Domain.Entities;
 using NeedApp.Domain.Enums;
@@ -160,6 +161,10 @@ public class SendMessageCommandHandler(
                 command.Content?.Length > 100 ? command.Content[..100] + "..." : command.Content ?? "",
                 command.RequestId,
                 "Request",
+                new NewMessageMetadata(
+                    request.Title,
+                    command.Content?.Length > 100 ? command.Content[..100] + "..." : command.Content ?? ""
+                ),
                 cancellationToken);
         }
 
@@ -250,6 +255,7 @@ public class SendMissingInfoCommandHandler(
                 $"Request \"{request.Title}\" cần bổ sung thông tin: {command.Content}",
                 command.RequestId,
                 "Request",
+                new MissingInfoMetadata(request.Title, command.Content),
                 cancellationToken);
         }
 

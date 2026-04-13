@@ -9,6 +9,7 @@ public class Notification : BaseEntity
     public NotificationType Type { get; set; }
     public string? Title { get; set; }
     public string? Content { get; set; }
+    public string? Metadata { get; set; }
     public Guid? ReferenceId { get; set; }
     public string? ReferenceType { get; set; }
     public bool IsRead { get; set; } = false;

@@ -18,6 +18,7 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         builder.Property(x => x.ReferenceId).HasColumnName("reference_id");
         builder.Property(x => x.ReferenceType).HasColumnName("reference_type").HasMaxLength(50);
         builder.Property(x => x.IsRead).HasColumnName("is_read");
+        builder.Property(x => x.Metadata).HasColumnName("metadata");
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
 
         builder.HasIndex(x => new { x.UserId, x.CreatedAt })

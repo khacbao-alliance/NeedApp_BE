@@ -2,6 +2,7 @@ using FluentValidation;
 using MediatR;
 using NeedApp.Application.DTOs.Client;
 using NeedApp.Application.DTOs.Invitation;
+using NeedApp.Application.DTOs.Notification;
 using NeedApp.Application.Interfaces;
 using NeedApp.Domain.Entities;
 using NeedApp.Domain.Enums;
@@ -87,6 +88,7 @@ public class InviteClientMemberCommandHandler(
             $"{requesterName} đã mời bạn tham gia \"{clientName}\" với vai trò {command.Role}.",
             invitation.Id,
             "Invitation",
+            new InvitationMetadata(clientName, requesterName, command.Role.ToString()),
             cancellationToken);
 
         return new InvitationDto(
