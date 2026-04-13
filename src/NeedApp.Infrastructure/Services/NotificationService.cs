@@ -1,10 +1,10 @@
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NeedApp.Application.DTOs.Notification;
 using NeedApp.Application.Interfaces;
 using NeedApp.Domain.Entities;
 using NeedApp.Domain.Enums;
 using NeedApp.Domain.Interfaces;
+using System.Text.Json;
 
 namespace NeedApp.Infrastructure.Services;
 
@@ -118,7 +118,10 @@ public class NotificationService(
         await notificationRepository.AddRangeAsync(notifications, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // 2. Push real-time SignalR updates sequentially (DbContext is not thread-safe)
+        // 2. Push real-time SignalR updates — batch unread counts in one query
+        var unreadCounts = await notificationRepository.GetUnreadCountsByUserIdsAsync(
+            distinctUserIds, cancellationToken);
+
         foreach (var notification in notifications)
         {
             try
@@ -127,7 +130,7 @@ public class NotificationService(
                     notification.Id, type, title, content, metadataJson,
                     referenceId, referenceType, false, notification.CreatedAt);
                 await notificationHubService.SendNotificationToUser(notification.UserId, dto);
-                var unreadCount = await notificationRepository.GetUnreadCountAsync(notification.UserId, cancellationToken);
+                var unreadCount = unreadCounts.GetValueOrDefault(notification.UserId, 0);
                 await notificationHubService.SendUnreadCountToUser(notification.UserId, unreadCount);
             }
             catch (Exception ex)

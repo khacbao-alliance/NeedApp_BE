@@ -22,7 +22,7 @@ public class RespondInvitationCommandHandler(
         var userId = currentUserService.UserId
             ?? throw new UnauthorizedException("User not authenticated.");
 
-        var invitation = await invitationRepository.GetByIdWithDetailsAsync(command.InvitationId, cancellationToken)
+        var invitation = await invitationRepository.GetByIdForUpdateAsync(command.InvitationId, cancellationToken)
             ?? throw new NotFoundException("Invitation", command.InvitationId);
 
         // Only the invited user can respond

@@ -7,13 +7,13 @@ namespace NeedApp.Infrastructure.Persistence.Repositories;
 public class RequestParticipantRepository(AppDbContext context)
     : BaseRepository<RequestParticipant>(context), IRequestParticipantRepository
 {
-    private readonly AppDbContext _context = context;
+    private AppDbContext Context => context;
 
     public async Task<bool> IsParticipantAsync(Guid requestId, Guid userId, CancellationToken cancellationToken = default)
-        => await _context.RequestParticipants.AnyAsync(p => p.RequestId == requestId && p.UserId == userId, cancellationToken);
+        => await Context.RequestParticipants.AnyAsync(p => p.RequestId == requestId && p.UserId == userId, cancellationToken);
 
     public async Task<IEnumerable<RequestParticipant>> GetByRequestIdAsync(Guid requestId, CancellationToken cancellationToken = default)
-        => await _context.RequestParticipants
+        => await Context.RequestParticipants
             .Include(p => p.User)
             .Where(p => p.RequestId == requestId)
             .ToListAsync(cancellationToken);

@@ -28,7 +28,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
         {
             ValidationException ve => (HttpStatusCode.BadRequest, "Validation failed.", ve.Errors),
             NotFoundException nfe => (HttpStatusCode.NotFound, nfe.Message, (IDictionary<string, string[]>?)null),
-            UnauthorizedException ue => (HttpStatusCode.Forbidden, ue.Message, null),
+            UnauthorizedException ue => (HttpStatusCode.Unauthorized, ue.Message, null),
             DomainException de => (HttpStatusCode.BadRequest, de.Message, null),
             _ => (HttpStatusCode.InternalServerError, "An unexpected error occurred.", null)
         };

@@ -10,26 +10,56 @@ namespace NeedApp.API.Hubs;
 /// Clients join/leave request groups to receive messages in real-time.
 /// </summary>
 [Authorize]
-public class ChatHub(IRequestParticipantRepository participantRepository) : Hub
+public class ChatHub(
+    IRequestParticipantRepository participantRepository,
+    IRequestRepository requestRepository,
+    IClientUserRepository clientUserRepository) : Hub
 {
     /// <summary>
     /// Client calls this to join a request's chat room.
-    /// Only participants of the request can join.
+    /// Access is allowed if the user is:
+    ///   1. Admin or Staff (can view any request), OR
+    ///   2. A Client user belonging to the same company as the request, OR
+    ///   3. Already a participant of the request.
     /// </summary>
     public async Task JoinRequest(Guid requestId)
     {
         var userId = GetUserId();
         if (userId == null) return;
 
-        var isParticipant = await participantRepository.IsParticipantAsync(requestId, userId.Value);
-        if (!isParticipant)
+        var role = Context.User?.FindFirstValue(ClaimTypes.Role);
+
+        // Admin/Staff can join any request room
+        if (role is "Admin" or "Staff")
         {
-            await Clients.Caller.SendAsync("Error", "You are not a participant of this request.");
+            await Groups.AddToGroupAsync(Context.ConnectionId, GetGroupName(requestId));
+            await Clients.Caller.SendAsync("JoinedRequest", requestId);
             return;
         }
 
-        await Groups.AddToGroupAsync(Context.ConnectionId, GetGroupName(requestId));
-        await Clients.Caller.SendAsync("JoinedRequest", requestId);
+        // Check if user is already a participant
+        var isParticipant = await participantRepository.IsParticipantAsync(requestId, userId.Value);
+        if (isParticipant)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, GetGroupName(requestId));
+            await Clients.Caller.SendAsync("JoinedRequest", requestId);
+            return;
+        }
+
+        // Client user: check if they belong to the same company as the request
+        var request = await requestRepository.GetByIdAsync(requestId);
+        if (request != null)
+        {
+            var clientUser = await clientUserRepository.GetByUserIdAsync(userId.Value);
+            if (clientUser != null && clientUser.ClientId == request.ClientId)
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, GetGroupName(requestId));
+                await Clients.Caller.SendAsync("JoinedRequest", requestId);
+                return;
+            }
+        }
+
+        await Clients.Caller.SendAsync("Error", "You are not authorized to join this request.");
     }
 
     /// <summary>

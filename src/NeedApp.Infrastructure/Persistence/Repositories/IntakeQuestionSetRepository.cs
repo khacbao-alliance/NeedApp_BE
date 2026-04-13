@@ -7,15 +7,15 @@ namespace NeedApp.Infrastructure.Persistence.Repositories;
 public class IntakeQuestionSetRepository(AppDbContext context)
     : BaseRepository<IntakeQuestionSet>(context), IIntakeQuestionSetRepository
 {
-    private readonly AppDbContext _context = context;
+    private AppDbContext Context => context;
 
     public async Task<IntakeQuestionSet?> GetDefaultAsync(CancellationToken cancellationToken = default)
-        => await _context.IntakeQuestionSets.AsNoTracking()
+        => await Context.IntakeQuestionSets.AsNoTracking()
             .Include(s => s.Questions.OrderBy(q => q.OrderIndex))
             .FirstOrDefaultAsync(s => s.IsDefault && s.IsActive, cancellationToken);
 
     public async Task<IntakeQuestionSet?> GetWithQuestionsAsync(Guid id, CancellationToken cancellationToken = default)
-        => await _context.IntakeQuestionSets.AsNoTracking()
+        => await Context.IntakeQuestionSets.AsNoTracking()
             .Include(s => s.Questions.OrderBy(q => q.OrderIndex))
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
 }

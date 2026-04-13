@@ -8,21 +8,20 @@ namespace NeedApp.Infrastructure.Persistence.Repositories;
 public class MessageRepository(AppDbContext context)
     : BaseRepository<Message>(context), IMessageRepository
 {
-    private readonly AppDbContext _context = context;
+    private AppDbContext Context => context;
 
     public async Task<(IEnumerable<Message> Items, bool HasMore)> GetByRequestIdAsync(
         Guid requestId, DateTime? cursorDate, Guid? cursorId, int limit = 20,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.Messages.AsNoTracking()
+        var query = Context.Messages.AsNoTracking()
             .Where(m => m.RequestId == requestId)
             .Include(m => m.Sender)
             .Include(m => m.Files)
             .Include(m => m.Reactions)
-            .OrderBy(m => m.CreatedAt)
-            .ThenBy(m => m.Id)
             .AsQueryable();
 
+        // Apply cursor filter BEFORE ordering for better query plan
         if (cursorDate.HasValue && cursorId.HasValue)
         {
             query = query.Where(m =>
@@ -30,7 +29,12 @@ public class MessageRepository(AppDbContext context)
                 (m.CreatedAt == cursorDate.Value && m.Id.CompareTo(cursorId.Value) > 0));
         }
 
-        var items = await query.Take(limit + 1).ToListAsync(cancellationToken);
+        var items = await query
+            .OrderBy(m => m.CreatedAt)
+            .ThenBy(m => m.Id)
+            .Take(limit + 1)
+            .ToListAsync(cancellationToken);
+
         var hasMore = items.Count > limit;
         if (hasMore) items.RemoveAt(items.Count - 1);
 
@@ -38,7 +42,7 @@ public class MessageRepository(AppDbContext context)
     }
 
     public async Task<int> GetCountByRequestIdAsync(Guid requestId, CancellationToken cancellationToken = default)
-        => await _context.Messages.CountAsync(
+        => await Context.Messages.CountAsync(
             m => m.RequestId == requestId
               && (m.Type == MessageType.Text || m.Type == MessageType.File),
             cancellationToken);
@@ -48,7 +52,7 @@ public class MessageRepository(AppDbContext context)
         CancellationToken cancellationToken = default)
     {
         var ids = requestIds.ToList();
-        return await _context.Messages
+        return await Context.Messages
             .Where(m => ids.Contains(m.RequestId)
                      && (m.Type == MessageType.Text || m.Type == MessageType.File))
             .GroupBy(m => m.RequestId)
@@ -57,13 +61,13 @@ public class MessageRepository(AppDbContext context)
     }
 
     public async Task<IEnumerable<Message>> GetByTypeAsync(Guid requestId, MessageType type, CancellationToken cancellationToken = default)
-        => await _context.Messages.AsNoTracking()
+        => await Context.Messages.AsNoTracking()
             .Where(m => m.RequestId == requestId && m.Type == type)
             .OrderBy(m => m.CreatedAt)
             .ToListAsync(cancellationToken);
 
     public async Task<List<Message>> GetAllByRequestIdAsync(Guid requestId, CancellationToken cancellationToken = default)
-        => await _context.Messages.AsNoTracking()
+        => await Context.Messages.AsNoTracking()
             .Where(m => m.RequestId == requestId && !m.IsDeleted)
             .Include(m => m.Sender)
             .Include(m => m.Files)

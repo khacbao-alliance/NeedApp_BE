@@ -136,8 +136,6 @@ public class SendMessageCommandHandler(
                     await messageRepository.AddAsync(doneMsg, cancellationToken);
                 }
             }
-
-            requestRepository.Update(request);
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
