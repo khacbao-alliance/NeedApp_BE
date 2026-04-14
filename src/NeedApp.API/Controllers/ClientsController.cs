@@ -32,7 +32,7 @@ public class ClientsController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<IActionResult> GetClient(Guid id, CancellationToken cancellationToken)
+    public IActionResult GetClient(Guid id, CancellationToken cancellationToken)
     {
         // TODO: Implement GetClientQuery
         return Ok();

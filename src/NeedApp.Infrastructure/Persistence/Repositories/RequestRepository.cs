@@ -7,7 +7,6 @@ namespace NeedApp.Infrastructure.Persistence.Repositories;
 
 public class RequestRepository(AppDbContext context) : BaseRepository<Request>(context), IRequestRepository
 {
-    private AppDbContext Context => context;
 
     public async Task<IEnumerable<Request>> GetByClientIdAsync(Guid clientId, CancellationToken cancellationToken = default)
         => await DbSet.AsNoTracking().Where(r => r.ClientId == clientId).ToListAsync(cancellationToken);

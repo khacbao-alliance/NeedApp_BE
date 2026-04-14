@@ -7,7 +7,6 @@ namespace NeedApp.Infrastructure.Persistence.Repositories;
 public class ClientUserRepository(AppDbContext context)
     : BaseRepository<ClientUser>(context), IClientUserRepository
 {
-    private AppDbContext Context => context;
 
     public async Task<ClientUser?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
         => await Context.ClientUsers.AsNoTracking().FirstOrDefaultAsync(cu => cu.UserId == userId && !cu.IsDeleted, cancellationToken);

@@ -7,6 +7,7 @@ using NeedApp.Domain.Enums;
 using NeedApp.Domain.Exceptions;
 using NeedApp.Domain.Interfaces;
 using Xunit;
+using NeedApp.Application.DTOs.Message;
 
 namespace NeedApp.Tests.Features.Requests.Commands;
 
@@ -24,13 +25,14 @@ public class UpdateRequestStatusCommandTests
         var requests      = Substitute.For<IRequestRepository>();
         var messages      = Substitute.For<IMessageRepository>();
         var currentUser   = Substitute.For<ICurrentUserService>();
+        var chatHub       = Substitute.For<IChatHubService>();
         var notifications = Substitute.For<INotificationService>();
         var unitOfWork    = Substitute.For<IUnitOfWork>();
 
         currentUser.UserId.Returns(actorId);
 
         var handler = new UpdateRequestStatusCommandHandler(
-            requests, messages, currentUser, notifications, unitOfWork);
+            requests, messages, currentUser, chatHub, notifications, unitOfWork);
 
         return (requests, messages, currentUser, notifications, unitOfWork, handler);
     }

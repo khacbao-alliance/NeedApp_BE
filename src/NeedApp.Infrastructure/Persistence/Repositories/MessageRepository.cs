@@ -8,7 +8,6 @@ namespace NeedApp.Infrastructure.Persistence.Repositories;
 public class MessageRepository(AppDbContext context)
     : BaseRepository<Message>(context), IMessageRepository
 {
-    private AppDbContext Context => context;
 
     public async Task<(IEnumerable<Message> Items, bool HasMore)> GetByRequestIdAsync(
         Guid requestId, DateTime? cursorDate, Guid? cursorId, int limit = 20,

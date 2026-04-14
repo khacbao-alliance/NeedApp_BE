@@ -7,7 +7,6 @@ namespace NeedApp.Infrastructure.Persistence.Repositories;
 public class IntakeQuestionSetRepository(AppDbContext context)
     : BaseRepository<IntakeQuestionSet>(context), IIntakeQuestionSetRepository
 {
-    private AppDbContext Context => context;
 
     public async Task<IntakeQuestionSet?> GetDefaultAsync(CancellationToken cancellationToken = default)
         => await Context.IntakeQuestionSets.AsNoTracking()

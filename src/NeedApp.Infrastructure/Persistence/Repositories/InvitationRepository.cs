@@ -8,7 +8,6 @@ namespace NeedApp.Infrastructure.Persistence.Repositories;
 public class InvitationRepository(AppDbContext context)
     : BaseRepository<Invitation>(context), IInvitationRepository
 {
-    private AppDbContext Context => context;
 
     public async Task<Invitation?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default)
         => await Context.Invitations.AsNoTracking()

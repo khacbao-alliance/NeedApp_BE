@@ -8,6 +8,7 @@ namespace NeedApp.Infrastructure.Persistence.Repositories;
 
 public class BaseRepository<T>(AppDbContext context) : IRepository<T> where T : BaseEntity
 {
+    protected readonly AppDbContext Context = context;
     protected readonly DbSet<T> DbSet = context.Set<T>();
 
     public async Task<T?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)

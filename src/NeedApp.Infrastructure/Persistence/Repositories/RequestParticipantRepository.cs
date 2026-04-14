@@ -7,7 +7,6 @@ namespace NeedApp.Infrastructure.Persistence.Repositories;
 public class RequestParticipantRepository(AppDbContext context)
     : BaseRepository<RequestParticipant>(context), IRequestParticipantRepository
 {
-    private AppDbContext Context => context;
 
     public async Task<bool> IsParticipantAsync(Guid requestId, Guid userId, CancellationToken cancellationToken = default)
         => await Context.RequestParticipants.AnyAsync(p => p.RequestId == requestId && p.UserId == userId, cancellationToken);

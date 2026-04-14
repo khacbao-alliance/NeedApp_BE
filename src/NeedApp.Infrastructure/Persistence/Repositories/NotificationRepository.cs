@@ -7,7 +7,6 @@ namespace NeedApp.Infrastructure.Persistence.Repositories;
 public class NotificationRepository(AppDbContext context)
     : BaseRepository<Notification>(context), INotificationRepository
 {
-    private AppDbContext Context => context;
 
     public async Task<IEnumerable<Notification>> GetByUserIdAsync(Guid userId, int page, int pageSize, CancellationToken cancellationToken = default)
         => await Context.Notifications.AsNoTracking()
