@@ -36,6 +36,8 @@ services:
       Cloudinary__ApiSecret: ${CLOUDINARY_API_SECRET}
       SmtpSettings__SenderEmail: ${SMTP_SENDER_EMAIL}
       SmtpSettings__AppPassword: ${SMTP_APP_PASSWORD}
+      SmtpSettings__LogoUrl: ${SMTP_LOGO_URL}
+      SmtpSettings__AppUrl: ${SMTP_APP_URL}
       GeminiSettings__ApiKey: ${GEMINI_API_KEY}
     depends_on:
       postgres:
