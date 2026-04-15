@@ -38,4 +38,11 @@ public class ChatHubService(IHubContext<ChatHub> hubContext) : IChatHubService
             .Group(ChatHub.GetGroupName(requestId))
             .SendAsync("UserTyping", new { requestId, userId, userName });
     }
+
+    public async Task SendMessageRead(Guid requestId, Guid userId, DateTime lastReadAt)
+    {
+        await hubContext.Clients
+            .Group(ChatHub.GetGroupName(requestId))
+            .SendAsync("MessageRead", new { requestId, userId, lastReadAt });
+    }
 }

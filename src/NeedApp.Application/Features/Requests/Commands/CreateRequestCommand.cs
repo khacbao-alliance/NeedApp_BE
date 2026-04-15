@@ -41,8 +41,12 @@ public class CreateRequestCommandHandler(
         var clientUser = await clientUserRepository.GetByUserIdAsync(userId, cancellationToken)
             ?? throw new DomainException("Please create your client profile first.");
 
-        // Get default intake question set
-        var questionSet = await intakeRepo.GetDefaultAsync(cancellationToken);
+        // Get the active question set to use for this request:
+        // 1. Try the set marked as default AND active
+        // 2. Fallback: any active set (default-first ordering)
+        // 3. null → no intake questions, request goes straight to Pending
+        var questionSet = await intakeRepo.GetDefaultAsync(cancellationToken)
+            ?? await intakeRepo.GetFirstActiveAsync(cancellationToken);
 
         var request = new Request
         {

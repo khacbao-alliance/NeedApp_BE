@@ -1,4 +1,4 @@
-using FluentValidation;
+    using FluentValidation;
 using MediatR;
 using NeedApp.Application.DTOs.Notification;
 using NeedApp.Application.DTOs.Request;
@@ -110,6 +110,7 @@ public class UpdateRequestStatusCommandHandler(
                 ? new RequestUserDto(creator.UserId, creator.User?.Name, creator.User?.AvatarUrl)
                 : null,
             messageCount,
+            !detailed.Client.IsDeleted,
             detailed.CreatedAt,
             detailed.UpdatedAt
         );

@@ -64,6 +64,7 @@ public record MarkReadCommand(Guid RequestId) : IRequest;
 
 public class MarkReadCommandHandler(
     IRepository<MessageReadReceipt> receiptRepo,
+    IChatHubService chatHubService,
     ICurrentUserService currentUserService,
     IUnitOfWork unitOfWork) : IRequestHandler<MarkReadCommand>
 {
@@ -76,9 +77,11 @@ public class MarkReadCommandHandler(
             r => r.RequestId == command.RequestId && r.UserId == userId,
             cancellationToken)).FirstOrDefault();
 
+        var now = DateTime.UtcNow;
+
         if (existing != null)
         {
-            existing.LastReadAt = DateTime.UtcNow;
+            existing.LastReadAt = now;
             receiptRepo.Update(existing);
         }
         else
@@ -87,10 +90,13 @@ public class MarkReadCommandHandler(
             {
                 RequestId = command.RequestId,
                 UserId = userId,
-                LastReadAt = DateTime.UtcNow
+                LastReadAt = now
             }, cancellationToken);
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Push real-time event so other participants see "seen" indicator immediately
+        await chatHubService.SendMessageRead(command.RequestId, userId, now);
     }
 }

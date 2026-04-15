@@ -19,6 +19,7 @@ public record RequestDto(
     RequestUserDto? AssignedUser,
     RequestUserDto? CreatedByUser,
     int MessageCount,
+    bool IsClientActive,
     DateTime CreatedAt,
     DateTime? UpdatedAt
 );

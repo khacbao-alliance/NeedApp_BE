@@ -42,8 +42,13 @@ public record SendMissingInfoRequest(
     List<string> Questions
 );
 
+/// <summary>Read receipt: user X has read all messages up to LastReadAt.</summary>
+public record ReadReceiptDto(Guid UserId, DateTime LastReadAt);
+
 public record MessageListResponse(
     List<MessageDto> Items,
     string? NextCursor,
-    bool HasMore
+    bool HasMore,
+    List<ReadReceiptDto>? Readers = null
 );
+
