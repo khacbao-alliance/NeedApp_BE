@@ -88,6 +88,7 @@ public class UnassignRequestCommandHandler(
                 ? new RequestUserDto(creator.UserId, creator.User?.Name, creator.User?.AvatarUrl)
                 : null,
             messageCount,
+            !detailed.Client.IsDeleted,
             detailed.CreatedAt,
             detailed.UpdatedAt
         );

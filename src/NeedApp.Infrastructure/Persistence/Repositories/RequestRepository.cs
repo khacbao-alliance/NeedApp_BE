@@ -19,6 +19,8 @@ public class RequestRepository(AppDbContext context) : BaseRepository<Request>(c
 
     public async Task<Request?> GetWithDetailsAsync(Guid id, CancellationToken cancellationToken = default)
         => await DbSet.AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(r => !r.IsDeleted)
             .Include(r => r.Client)
             .Include(r => r.AssignedUser)
             .Include(r => r.Participants).ThenInclude(p => p.User)
@@ -47,9 +49,11 @@ public class RequestRepository(AppDbContext context) : BaseRepository<Request>(c
 
             query = Context.Requests.FromSqlInterpolated(
                 $@"SELECT * FROM requests
-                   WHERE translate(lower(title), {vnFrom}, {vnTo}) LIKE {normalizedSearch}
-                      OR translate(lower(COALESCE(description, '')), {vnFrom}, {vnTo}) LIKE {normalizedSearch}")
+                   WHERE is_deleted = false
+                     AND (translate(lower(title), {vnFrom}, {vnTo}) LIKE {normalizedSearch}
+                      OR translate(lower(COALESCE(description, '')), {vnFrom}, {vnTo}) LIKE {normalizedSearch})")
                 .AsNoTracking()
+                .IgnoreQueryFilters()
                 .Include(r => r.Client)
                 .Include(r => r.AssignedUser)
                 .Include(r => r.Participants).ThenInclude(p => p.User);
@@ -57,6 +61,8 @@ public class RequestRepository(AppDbContext context) : BaseRepository<Request>(c
         else
         {
             query = DbSet.AsNoTracking()
+                .IgnoreQueryFilters()
+                .Where(r => !r.IsDeleted)
                 .Include(r => r.Client)
                 .Include(r => r.AssignedUser)
                 .Include(r => r.Participants).ThenInclude(p => p.User);

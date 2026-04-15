@@ -1,6 +1,7 @@
 using MediatR;
 using NeedApp.Application.DTOs.Message;
 using NeedApp.Application.Interfaces;
+using NeedApp.Domain.Entities;
 using NeedApp.Domain.Enums;
 using NeedApp.Domain.Exceptions;
 using NeedApp.Domain.Interfaces;
@@ -14,6 +15,7 @@ public class GetMessagesQueryHandler(
     IRequestRepository requestRepository,
     IClientUserRepository clientUserRepository,
     IRequestParticipantRepository participantRepository,
+    IRepository<MessageReadReceipt> readReceiptRepository,
     ICurrentUserService currentUserService) : IRequestHandler<GetMessagesQuery, MessageListResponse>
 {
     public async Task<MessageListResponse> Handle(GetMessagesQuery query, CancellationToken cancellationToken)
@@ -74,6 +76,13 @@ public class GetMessagesQueryHandler(
                 : null
         )).ToList();
 
+        // Load read receipts for this request (one per user)
+        var receipts = await readReceiptRepository.FindAsync(
+            r => r.RequestId == query.RequestId, cancellationToken);
+        var readers = receipts
+            .Select(r => new ReadReceiptDto(r.UserId, r.LastReadAt))
+            .ToList();
+
         string? nextCursor = null;
         if (hasMore && messages.Count > 0)
         {
@@ -81,7 +90,7 @@ public class GetMessagesQueryHandler(
             nextCursor = $"{last.CreatedAt:O}_{last.Id}";
         }
 
-        return new MessageListResponse(messages, nextCursor, hasMore);
+        return new MessageListResponse(messages, nextCursor, hasMore, readers);
     }
 }
 

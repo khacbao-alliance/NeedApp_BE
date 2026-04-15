@@ -67,6 +67,7 @@ public class GetRequestsQueryHandler(
                     r.Participants.First(p => p.Role == ParticipantRole.Creator).User?.AvatarUrl)
                 : null,
             messageCounts.GetValueOrDefault(r.Id, 0),
+            r.Client != null && !r.Client.IsDeleted,
             r.CreatedAt,
             r.UpdatedAt
         ));

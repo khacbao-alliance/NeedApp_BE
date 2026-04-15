@@ -13,6 +13,15 @@ public class IntakeQuestionSetRepository(AppDbContext context)
             .Include(s => s.Questions.OrderBy(q => q.OrderIndex))
             .FirstOrDefaultAsync(s => s.IsDefault && s.IsActive, cancellationToken);
 
+    // Fallback: first active set (default-first, then by creation date)
+    public async Task<IntakeQuestionSet?> GetFirstActiveAsync(CancellationToken cancellationToken = default)
+        => await Context.IntakeQuestionSets.AsNoTracking()
+            .Include(s => s.Questions.OrderBy(q => q.OrderIndex))
+            .Where(s => s.IsActive)
+            .OrderByDescending(s => s.IsDefault)
+            .ThenBy(s => s.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
     public async Task<IntakeQuestionSet?> GetWithQuestionsAsync(Guid id, CancellationToken cancellationToken = default)
         => await Context.IntakeQuestionSets.AsNoTracking()
             .Include(s => s.Questions.OrderBy(q => q.OrderIndex))

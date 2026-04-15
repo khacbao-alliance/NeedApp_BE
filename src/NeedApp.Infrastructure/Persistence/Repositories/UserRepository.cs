@@ -7,7 +7,6 @@ namespace NeedApp.Infrastructure.Persistence.Repositories;
 
 public class UserRepository(AppDbContext context) : BaseRepository<User>(context), IUserRepository
 {
-    private AppDbContext Context => context;
 
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
         => await DbSet.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email, cancellationToken);

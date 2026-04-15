@@ -66,6 +66,7 @@ public static class DependencyInjection
         services.AddScoped<IRequestParticipantRepository, RequestParticipantRepository>();
         services.AddScoped<IFileAttachmentRepository, FileAttachmentRepository>();
         services.AddScoped<IIntakeQuestionSetRepository, IntakeQuestionSetRepository>();
+        services.AddScoped<IIntakeQuestionRepository, IntakeQuestionRepository>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IInvitationRepository, InvitationRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
