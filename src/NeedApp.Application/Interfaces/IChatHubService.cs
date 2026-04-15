@@ -27,4 +27,9 @@ public interface IChatHubService
     /// Notify that someone is typing in a request thread.
     /// </summary>
     Task SendTypingIndicator(Guid requestId, Guid userId, string? userName);
+
+    /// <summary>
+    /// Notify all participants that a user has read up to a given timestamp.
+    /// </summary>
+    Task SendMessageRead(Guid requestId, Guid userId, DateTime lastReadAt);
 }

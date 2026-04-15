@@ -38,3 +38,11 @@ public record UpdateIntakeQuestionRequest(
     bool IsRequired = true,
     string? Placeholder = null
 );
+
+public record UpdateIntakeQuestionSetRequest(
+    string Name,
+    string? Description,
+    bool IsDefault = false,
+    bool IsActive = true,
+    List<CreateIntakeQuestionRequest>? Questions = null
+);

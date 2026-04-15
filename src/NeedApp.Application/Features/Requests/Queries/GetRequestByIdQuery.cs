@@ -45,6 +45,7 @@ public class GetRequestByIdQueryHandler(
             r.AssignedUser != null ? new RequestUserDto(r.AssignedUser.Id, r.AssignedUser.Name, r.AssignedUser.AvatarUrl) : null,
             creator != null ? new RequestUserDto(creator.UserId, creator.User?.Name, creator.User?.AvatarUrl) : null,
             messageCount,
+            r.Client != null && !r.Client.IsDeleted,
             r.CreatedAt,
             r.UpdatedAt
         );

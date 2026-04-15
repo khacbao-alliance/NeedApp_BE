@@ -15,6 +15,7 @@ public record DeleteClientCommand : IRequest;
 public class DeleteClientCommandHandler(
     IClientRepository clientRepository,
     IClientUserRepository clientUserRepository,
+    IRequestRepository requestRepository,
     IUserRepository userRepository,
     ICurrentUserService currentUserService,
     IUnitOfWork unitOfWork) : IRequestHandler<DeleteClientCommand>
@@ -56,6 +57,21 @@ public class DeleteClientCommandHandler(
             {
                 user.HasClient = false;
                 userRepository.Update(user);
+            }
+        }
+
+        // Auto-cancel all open requests belonging to this client
+        var openRequests = (await requestRepository.GetByClientIdAsync(clientId, cancellationToken))
+            .Where(r => r.Status != RequestStatus.Done && r.Status != RequestStatus.Cancelled)
+            .ToList();
+        foreach (var req in openRequests)
+        {
+            // Re-fetch tracked entity (GetByClientIdAsync uses AsNoTracking)
+            var tracked = await requestRepository.GetByIdAsync(req.Id, cancellationToken);
+            if (tracked is not null)
+            {
+                tracked.Status = RequestStatus.Cancelled;
+                requestRepository.Update(tracked);
             }
         }
 
