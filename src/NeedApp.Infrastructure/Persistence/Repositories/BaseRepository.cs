@@ -17,6 +17,9 @@ public class BaseRepository<T>(AppDbContext context) : IRepository<T> where T : 
     public async Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken = default)
         => await DbSet.ToListAsync(cancellationToken);
 
+    public async Task<IEnumerable<T>> GetAllReadOnlyAsync(CancellationToken cancellationToken = default)
+        => await DbSet.AsNoTracking().ToListAsync(cancellationToken);
+
     public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
         => await DbSet.Where(predicate).ToListAsync(cancellationToken);
 
