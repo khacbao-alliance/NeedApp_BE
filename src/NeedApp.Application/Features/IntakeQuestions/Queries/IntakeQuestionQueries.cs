@@ -15,7 +15,7 @@ public class GetIntakeQuestionSetsQueryHandler(
     public async Task<IEnumerable<IntakeQuestionSetDto>> Handle(
         GetIntakeQuestionSetsQuery request, CancellationToken cancellationToken)
     {
-        var sets = await repository.GetAllAsync(cancellationToken);
+        var sets = await repository.GetAllReadOnlyAsync(cancellationToken);
         return sets.Select(s => new IntakeQuestionSetDto(
             s.Id, s.Name, s.Description, s.IsActive, s.IsDefault, [], s.CreatedAt));
     }
