@@ -22,10 +22,17 @@ public class RequestsController(IMediator mediator, ICurrentUserService currentU
         [FromQuery] string? search = null,
         [FromQuery] RequestStatus? status = null,
         [FromQuery] RequestPriority? priority = null,
+        [FromQuery] Guid? assignedTo = null,
+        [FromQuery] Guid? clientId = null,
+        [FromQuery] DateTime? dateFrom = null,
+        [FromQuery] DateTime? dateTo = null,
+        [FromQuery] bool? isOverdue = null,
+        [FromQuery] string? sortBy = null,
         CancellationToken cancellationToken = default)
     {
         var result = await mediator.Send(
-            new GetRequestsQuery(page, pageSize, search, status, priority),
+            new GetRequestsQuery(page, pageSize, search, status, priority,
+                assignedTo, clientId, dateFrom, dateTo, isOverdue, sortBy),
             cancellationToken);
         return Ok(result);
     }
@@ -34,7 +41,7 @@ public class RequestsController(IMediator mediator, ICurrentUserService currentU
     public async Task<IActionResult> CreateRequest([FromBody] CreateRequestRequest request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(
-            new CreateRequestCommand(request.Title, request.Description, request.Priority),
+            new CreateRequestCommand(request.Title, request.Description, request.Priority, request.DueDate),
             cancellationToken);
         return CreatedAtAction(nameof(GetRequest), new { id = result.RequestId }, result);
     }

@@ -72,4 +72,26 @@ public class MessageRepository(AppDbContext context)
             .Include(m => m.Files)
             .OrderBy(m => m.CreatedAt)
             .ToListAsync(cancellationToken);
+
+    public async Task<List<Message>> SearchAsync(
+        Guid requestId, string query, int limit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedSearch = "%" + SearchHelper.RemoveDiacritics(query).ToLowerInvariant() + "%";
+        var vnFrom = SearchHelper.SqlTranslateFrom;
+        var vnTo = SearchHelper.SqlTranslateTo;
+
+        return await Context.Messages.FromSqlInterpolated(
+            $@"SELECT * FROM messages
+               WHERE request_id = {requestId}
+                 AND is_deleted = false
+                 AND translate(lower(COALESCE(content, '')), {vnFrom}, {vnTo}) LIKE {normalizedSearch}")
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .Include(m => m.Sender)
+            .Include(m => m.Files)
+            .OrderBy(m => m.CreatedAt)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+    }
 }

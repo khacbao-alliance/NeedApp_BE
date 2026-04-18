@@ -47,7 +47,9 @@ public class GetRequestByIdQueryHandler(
             messageCount,
             r.Client != null && !r.Client.IsDeleted,
             r.CreatedAt,
-            r.UpdatedAt
+            r.UpdatedAt,
+            r.DueDate,
+            r.IsOverdue
         );
     }
 }

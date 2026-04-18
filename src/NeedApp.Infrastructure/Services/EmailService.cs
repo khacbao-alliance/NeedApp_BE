@@ -324,5 +324,257 @@ public class EmailService(IOptions<SmtpSettings> smtpOptions, ILogger<EmailServi
 
         return BuildEmailWrapper("Thông báo", bodyContent);
     }
-}
 
+    // ═══════════════════════════════════════════════════════════════
+    // NEW: Request Assigned Email
+    // ═══════════════════════════════════════════════════════════════
+
+    public async Task SendRequestAssignedEmailAsync(
+        string toEmail, string? userName, string requestTitle, Guid requestId,
+        CancellationToken cancellationToken = default)
+    {
+        var displayName = userName ?? "bạn";
+        var subject = $"Yêu cầu mới được gán cho bạn — {requestTitle}";
+        var body = BuildRequestAssignedHtml(displayName, requestTitle, requestId);
+
+        await SendEmailAsync(toEmail, subject, body, cancellationToken);
+        logger.LogInformation("Request assigned email sent to {Email} for request {RequestId}", toEmail, requestId);
+    }
+
+    private string BuildRequestAssignedHtml(string displayName, string requestTitle, Guid requestId)
+    {
+        var appUrl = _smtp.AppUrl;
+        var requestUrl = $"{appUrl}/requests/{requestId}";
+        var bodyContent = $"""
+                                    <h2 style="margin:0 0 8px;font-size:22px;color:#111827;font-weight:700;">Yêu cầu mới được gán</h2>
+                                    <p style="margin:0 0 24px;font-size:15px;color:#6b7280;line-height:1.5;">Xin chào <strong style="color:#111827;">{displayName}</strong>,</p>
+
+                                    <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.7;">
+                                        Bạn vừa được gán xử lý yêu cầu sau:
+                                    </p>
+
+                                    <!-- Request card -->
+                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 24px;">
+                                        <tr>
+                                            <td style="background-color:#eff6ff;border-radius:10px;padding:24px;">
+                                                <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                                                    <tr>
+                                                        <td width="40" valign="top" style="padding-right:14px;">
+                                                            <div style="width:36px;height:36px;background-color:#1a56db;border-radius:10px;text-align:center;line-height:36px;font-size:18px;color:#ffffff;">&#128203;</div>
+                                                        </td>
+                                                        <td style="font-family:'Segoe UI',Roboto,Arial,sans-serif;">
+                                                            <p style="margin:0;font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:1px;">YÊU CẦU</p>
+                                                            <p style="margin:4px 0 0;font-size:17px;font-weight:700;color:#1e40af;line-height:1.4;">{requestTitle}</p>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <!-- CTA -->
+                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:4px 0 0;">
+                                        <tr>
+                                            <td align="center">
+                                                <a href="{requestUrl}" style="display:inline-block;background-color:#1a56db;color:#ffffff;font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;font-weight:600;padding:14px 36px;border-radius:8px;text-decoration:none;letter-spacing:0.3px;">
+                                                    Xem yêu cầu
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </table>
+        """;
+
+        return BuildEmailWrapper("Yêu cầu được gán", bodyContent);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // NEW: Overdue Alert Email
+    // ═══════════════════════════════════════════════════════════════
+
+    public async Task SendOverdueAlertEmailAsync(
+        string toEmail, string? userName, string requestTitle, DateTime dueDate, Guid requestId,
+        CancellationToken cancellationToken = default)
+    {
+        var displayName = userName ?? "bạn";
+        var subject = $"⚠️ Yêu cầu quá hạn — {requestTitle}";
+        var body = BuildOverdueAlertHtml(displayName, requestTitle, dueDate, requestId);
+
+        await SendEmailAsync(toEmail, subject, body, cancellationToken);
+        logger.LogInformation("Overdue alert email sent to {Email} for request {RequestId}", toEmail, requestId);
+    }
+
+    private string BuildOverdueAlertHtml(string displayName, string requestTitle, DateTime dueDate, Guid requestId)
+    {
+        var appUrl = _smtp.AppUrl;
+        var requestUrl = $"{appUrl}/requests/{requestId}";
+        var overdueSince = (DateTime.UtcNow - dueDate).TotalHours;
+        var overdueLabel = overdueSince < 24
+            ? $"{Math.Round(overdueSince)} giờ"
+            : $"{Math.Round(overdueSince / 24)} ngày";
+
+        var bodyContent = $"""
+                                    <h2 style="margin:0 0 8px;font-size:22px;color:#dc2626;font-weight:700;">⚠️ Yêu cầu quá hạn</h2>
+                                    <p style="margin:0 0 24px;font-size:15px;color:#6b7280;line-height:1.5;">Xin chào <strong style="color:#111827;">{displayName}</strong>,</p>
+
+                                    <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.7;">
+                                        Yêu cầu dưới đây đã <strong style="color:#dc2626;">quá hạn {overdueLabel}</strong> và cần được xử lý ngay:
+                                    </p>
+
+                                    <!-- Warning card -->
+                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 24px;">
+                                        <tr>
+                                            <td style="background-color:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:24px;">
+                                                <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                                                    <tr>
+                                                        <td width="40" valign="top" style="padding-right:14px;">
+                                                            <div style="width:36px;height:36px;background-color:#dc2626;border-radius:10px;text-align:center;line-height:36px;font-size:18px;color:#ffffff;">&#128293;</div>
+                                                        </td>
+                                                        <td style="font-family:'Segoe UI',Roboto,Arial,sans-serif;">
+                                                            <p style="margin:0;font-size:10px;font-weight:600;color:#991b1b;text-transform:uppercase;letter-spacing:1px;">QUÁ HẠN</p>
+                                                            <p style="margin:4px 0 0;font-size:17px;font-weight:700;color:#991b1b;line-height:1.4;">{requestTitle}</p>
+                                                            <p style="margin:6px 0 0;font-size:13px;color:#b91c1c;">Deadline: {dueDate:dd/MM/yyyy HH:mm} UTC</p>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <!-- CTA -->
+                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:4px 0 0;">
+                                        <tr>
+                                            <td align="center">
+                                                <a href="{requestUrl}" style="display:inline-block;background-color:#dc2626;color:#ffffff;font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;font-weight:600;padding:14px 36px;border-radius:8px;text-decoration:none;letter-spacing:0.3px;">
+                                                    Xử lý ngay
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </table>
+        """;
+
+        return BuildEmailWrapper("Cảnh báo quá hạn", bodyContent);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // NEW: Digest Email
+    // ═══════════════════════════════════════════════════════════════
+
+    public async Task SendDigestEmailAsync(
+        string toEmail, string? userName, string period, List<DigestItem> items,
+        CancellationToken cancellationToken = default)
+    {
+        var displayName = userName ?? "bạn";
+        var subject = $"📊 Tóm tắt {period} — NeedApp";
+        var body = BuildDigestHtml(displayName, period, items);
+
+        await SendEmailAsync(toEmail, subject, body, cancellationToken);
+        logger.LogInformation("Digest email ({Period}) sent to {Email} with {Count} items", period, toEmail, items.Count);
+    }
+
+    private string BuildDigestHtml(string displayName, string period, List<DigestItem> items)
+    {
+        var appUrl = _smtp.AppUrl;
+        var overdueCount = items.Count(i => i.IsOverdue);
+        var openCount = items.Count(i => !i.IsOverdue);
+
+        // Build table rows
+        var rows = string.Join("", items.Select(item =>
+        {
+            var statusColor = item.IsOverdue ? "#dc2626" : item.Status switch
+            {
+                "InProgress" => "#2563eb",
+                "MissingInfo" => "#d97706",
+                "Pending" => "#6b7280",
+                _ => "#374151"
+            };
+            var statusLabel = item.IsOverdue ? "Quá hạn" : item.Status switch
+            {
+                "InProgress" => "Đang xử lý",
+                "MissingInfo" => "Cần bổ sung",
+                "Pending" => "Chờ xử lý",
+                "Done" => "Hoàn tất",
+                _ => item.Status
+            };
+            var priorityEmoji = item.Priority switch
+            {
+                "Urgent" => "🔴",
+                "High" => "🟠",
+                "Medium" => "🔵",
+                "Low" => "🟢",
+                _ => "⚪"
+            };
+
+            return $"""
+                <tr>
+                    <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:13px;color:#374151;">
+                        <a href="{appUrl}/requests/{item.RequestId}" style="color:#1a56db;text-decoration:none;font-weight:600;">{item.Title}</a>
+                    </td>
+                    <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:12px;text-align:center;">
+                        <span style="display:inline-block;background-color:{statusColor}15;color:{statusColor};padding:2px 8px;border-radius:20px;font-weight:600;font-size:11px;">{statusLabel}</span>
+                    </td>
+                    <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:13px;text-align:center;">
+                        {priorityEmoji}
+                    </td>
+                </tr>
+            """;
+        }));
+
+        var bodyContent = $"""
+                                    <h2 style="margin:0 0 8px;font-size:22px;color:#111827;font-weight:700;">📊 Tóm tắt {period}</h2>
+                                    <p style="margin:0 0 24px;font-size:15px;color:#6b7280;line-height:1.5;">Xin chào <strong style="color:#111827;">{displayName}</strong>,</p>
+
+                                    <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.7;">
+                                        Đây là bản tóm tắt các yêu cầu bạn đang phụ trách:
+                                    </p>
+
+                                    <!-- Stats -->
+                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 24px;">
+                                        <tr>
+                                            <td width="50%" style="padding-right:6px;">
+                                                <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                                                    <tr>
+                                                        <td style="background-color:#eff6ff;border-radius:8px;padding:16px;text-align:center;">
+                                                            <p style="margin:0;font-size:28px;font-weight:800;color:#1a56db;">{openCount}</p>
+                                                            <p style="margin:4px 0 0;font-size:12px;color:#6b7280;font-weight:600;">Đang mở</p>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                            <td width="50%" style="padding-left:6px;">
+                                                <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                                                    <tr>
+                                                        <td style="background-color:#fef2f2;border-radius:8px;padding:16px;text-align:center;">
+                                                            <p style="margin:0;font-size:28px;font-weight:800;color:#dc2626;">{overdueCount}</p>
+                                                            <p style="margin:4px 0 0;font-size:12px;color:#6b7280;font-weight:600;">Quá hạn</p>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <!-- Requests table -->
+                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 24px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+                                        <tr style="background-color:#f9fafb;">
+                                            <th style="padding:10px 12px;font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:11px;font-weight:700;color:#6b7280;text-align:left;text-transform:uppercase;letter-spacing:0.5px;">Yêu cầu</th>
+                                            <th style="padding:10px 12px;font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:11px;font-weight:700;color:#6b7280;text-align:center;text-transform:uppercase;letter-spacing:0.5px;">Trạng thái</th>
+                                            <th style="padding:10px 12px;font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:11px;font-weight:700;color:#6b7280;text-align:center;text-transform:uppercase;letter-spacing:0.5px;">Ưu tiên</th>
+                                        </tr>
+                                        {rows}
+                                    </table>
+
+                                    <!-- CTA -->
+                                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:4px 0 0;">
+                                        <tr>
+                                            <td align="center">
+                                                <a href="{appUrl}/requests" style="display:inline-block;background-color:#1a56db;color:#ffffff;font-family:'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;font-weight:600;padding:14px 36px;border-radius:8px;text-decoration:none;letter-spacing:0.3px;">
+                                                    Xem tất cả yêu cầu
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </table>
+        """;
+
+        return BuildEmailWrapper($"Tóm tắt {period}", bodyContent);
+    }
+}

@@ -90,7 +90,9 @@ public class UnassignRequestCommandHandler(
             messageCount,
             !detailed.Client.IsDeleted,
             detailed.CreatedAt,
-            detailed.UpdatedAt
+            detailed.UpdatedAt,
+            detailed.DueDate,
+            detailed.IsOverdue
         );
     }
 }

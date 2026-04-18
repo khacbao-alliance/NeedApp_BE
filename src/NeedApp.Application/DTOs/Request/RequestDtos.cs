@@ -6,7 +6,8 @@ namespace NeedApp.Application.DTOs.Request;
 public record CreateRequestRequest(
     string Title,
     string? Description = null,
-    RequestPriority Priority = RequestPriority.Medium
+    RequestPriority Priority = RequestPriority.Medium,
+    DateTime? DueDate = null
 );
 
 public record RequestDto(
@@ -21,7 +22,9 @@ public record RequestDto(
     int MessageCount,
     bool IsClientActive,
     DateTime CreatedAt,
-    DateTime? UpdatedAt
+    DateTime? UpdatedAt,
+    DateTime? DueDate,
+    bool IsOverdue
 );
 
 public record CreateRequestResponse(

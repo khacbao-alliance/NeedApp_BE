@@ -18,5 +18,12 @@ public interface IRequestRepository : IRepository<Request>
         Guid? currentUserId,
         UserRole? currentUserRole,
         Guid? currentClientId,
+        // ── Advanced filters ──
+        Guid? assignedTo = null,
+        Guid? clientId = null,
+        DateTime? dateFrom = null,
+        DateTime? dateTo = null,
+        bool? isOverdue = null,
+        string? sortBy = null,
         CancellationToken cancellationToken = default);
 }
