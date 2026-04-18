@@ -21,6 +21,7 @@ public class CreateRequestCommandTests
         ICurrentUserService currentUser,
         IUserRepository users,
         INotificationService notifications,
+        ISlaConfigRepository slaConfigs,
         IUnitOfWork unitOfWork,
         CreateRequestCommandHandler handler
     ) BuildSut(Guid actorId)
@@ -33,16 +34,17 @@ public class CreateRequestCommandTests
         var currentUser  = Substitute.For<ICurrentUserService>();
         var users        = Substitute.For<IUserRepository>();
         var notifs       = Substitute.For<INotificationService>();
+        var slaConfigs   = Substitute.For<ISlaConfigRepository>();
         var unitOfWork   = Substitute.For<IUnitOfWork>();
 
         currentUser.UserId.Returns(actorId);
 
         var handler = new CreateRequestCommandHandler(
             requests, clientUsers, messages, participants,
-            intakeRepo, currentUser, users, notifs, unitOfWork);
+            intakeRepo, currentUser, users, notifs, slaConfigs, unitOfWork);
 
         return (requests, clientUsers, messages, participants, intakeRepo,
-                currentUser, users, notifs, unitOfWork, handler);
+                currentUser, users, notifs, slaConfigs, unitOfWork, handler);
     }
 
     // ── Test 1: No intake → status Pending ───────────────────────
@@ -54,7 +56,7 @@ public class CreateRequestCommandTests
         var clientId = Guid.NewGuid();
 
         var (requests, clientUsers, _, _, intakeRepo,
-             _, users, notifications, _, handler) = BuildSut(userId);
+             _, users, notifications, _, _, handler) = BuildSut(userId);
 
         clientUsers.GetByUserIdAsync(userId, default)
             .Returns(new ClientUser { UserId = userId, ClientId = clientId });
@@ -79,7 +81,7 @@ public class CreateRequestCommandTests
         var clientId = Guid.NewGuid();
 
         var (requests, clientUsers, _, _, intakeRepo,
-             _, users, _, _, handler) = BuildSut(userId);
+             _, users, _, _, _, handler) = BuildSut(userId);
 
         var questionSet = new IntakeQuestionSet
         {
@@ -111,7 +113,7 @@ public class CreateRequestCommandTests
     public async Task Handle_NoClientProfile_ThrowsDomainException()
     {
         var userId = Guid.NewGuid();
-        var (_, clientUsers, _, _, _, _, _, _, _, handler) = BuildSut(userId);
+        var (_, clientUsers, _, _, _, _, _, _, _, _, handler) = BuildSut(userId);
 
         clientUsers.GetByUserIdAsync(userId, default).Returns((ClientUser?)null);
 
@@ -133,7 +135,7 @@ public class CreateRequestCommandTests
         var admin1   = new User { Id = Guid.NewGuid(), Role = UserRole.Admin };
 
         var (_, clientUsers, _, _, intakeRepo,
-             _, users, notifications, _, handler) = BuildSut(userId);
+             _, users, notifications, _, _, handler) = BuildSut(userId);
 
         clientUsers.GetByUserIdAsync(userId, default)
             .Returns(new ClientUser { UserId = userId, ClientId = clientId });
