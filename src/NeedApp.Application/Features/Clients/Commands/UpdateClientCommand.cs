@@ -43,10 +43,10 @@ public class UpdateClientCommandHandler(
 
         // Check that the current user is the Owner of this client
         var membership = await clientUserRepository.GetByUserAndClientIdAsync(userId, request.ClientId, cancellationToken)
-            ?? throw new UnauthorizedException("You are not a member of this client.");
+            ?? throw new ForbiddenException("You are not a member of this client.");
 
         if (membership.Role != Domain.Enums.ClientRole.Owner)
-            throw new UnauthorizedException("Only the Owner can update client information.");
+            throw new ForbiddenException("Only the Owner can update client information.");
 
         if (request.Name is not null) client.Name = request.Name.Trim();
         if (request.Description is not null) client.Description = request.Description.Trim();

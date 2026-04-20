@@ -34,7 +34,7 @@ public class FilesController(
 
         var isParticipant = await participantRepository.IsParticipantAsync(requestId, userId, cancellationToken);
         if (!isParticipant)
-            throw new UnauthorizedException("You are not a participant of this request.");
+            throw new ForbiddenException("You are not a participant of this request.");
 
         if (files.Count == 0)
             throw new DomainException("At least one file is required.");

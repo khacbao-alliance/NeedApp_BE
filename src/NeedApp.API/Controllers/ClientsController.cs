@@ -22,7 +22,6 @@ public class ClientsController(IMediator mediator) : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Client")]
     public async Task<IActionResult> UpdateClient(Guid id, [FromBody] UpdateClientRequest request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(

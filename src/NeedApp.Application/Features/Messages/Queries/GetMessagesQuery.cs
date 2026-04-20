@@ -43,7 +43,7 @@ public class GetMessagesQueryHandler(
             if (!isParticipant)
                 // 403 — request exists but staff is not yet a participant (not assigned).
                 // FE uses 403 to distinguish "not assigned" from "not found" (404).
-                throw new UnauthorizedException("You are not assigned to this request.");
+                throw new ForbiddenException("You are not assigned to this request.");
         }
         // Admin: no restriction
 
