@@ -37,8 +37,8 @@ public class RequestRepository(AppDbContext context) : BaseRepository<Request>(c
         Guid? currentClientId,
         Guid? assignedTo = null,
         Guid? clientId = null,
-        DateTime? dateFrom = null,
-        DateTime? dateTo = null,
+        DateOnly? dateFrom = null,
+        DateOnly? dateTo = null,
         bool? isOverdue = null,
         string? sortBy = null,
         CancellationToken cancellationToken = default)
@@ -99,10 +99,10 @@ public class RequestRepository(AppDbContext context) : BaseRepository<Request>(c
             query = query.Where(r => r.ClientId == clientId.Value);
 
         if (dateFrom.HasValue)
-            query = query.Where(r => r.CreatedAt >= dateFrom.Value);
+            query = query.Where(r => r.CreatedAt >= dateFrom.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc));
 
         if (dateTo.HasValue)
-            query = query.Where(r => r.CreatedAt <= dateTo.Value);
+            query = query.Where(r => r.CreatedAt <= dateTo.Value.ToDateTime(new TimeOnly(23, 59, 59), DateTimeKind.Utc));
 
         if (isOverdue == true)
             query = query.Where(r => r.DueDate.HasValue && r.DueDate.Value < DateTime.UtcNow

@@ -16,8 +16,8 @@ public record GetRequestsQuery(
     // ── Advanced filters ──
     Guid? AssignedTo = null,
     Guid? ClientId = null,
-    DateTime? DateFrom = null,
-    DateTime? DateTo = null,
+    DateOnly? DateFrom = null,
+    DateOnly? DateTo = null,
     bool? IsOverdue = null,
     string? SortBy = null
 ) : IRequest<PaginatedResult<RequestDto>>;

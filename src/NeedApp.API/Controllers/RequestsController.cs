@@ -24,8 +24,8 @@ public class RequestsController(IMediator mediator, ICurrentUserService currentU
         [FromQuery] RequestPriority? priority = null,
         [FromQuery] Guid? assignedTo = null,
         [FromQuery] Guid? clientId = null,
-        [FromQuery] DateTime? dateFrom = null,
-        [FromQuery] DateTime? dateTo = null,
+        [FromQuery] DateOnly? dateFrom = null,
+        [FromQuery] DateOnly? dateTo = null,
         [FromQuery] bool? isOverdue = null,
         [FromQuery] string? sortBy = null,
         CancellationToken cancellationToken = default)

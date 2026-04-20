@@ -28,8 +28,10 @@ public class GetRequestByIdQueryHandler(
         if (userRole == UserRole.Client && userId.HasValue)
         {
             var clientUser = await clientUserRepository.GetByUserIdAsync(userId.Value, cancellationToken);
-            if (clientUser == null || r.ClientId != clientUser.ClientId)
-                throw new NotFoundException("Request", request.Id);
+            if (clientUser == null)
+                throw new ForbiddenException("You do not belong to any client company.");
+            if (r.ClientId != clientUser.ClientId)
+                throw new ForbiddenException("You do not have access to this request.");
         }
 
         var creator = r.Participants.FirstOrDefault(p => p.Role == ParticipantRole.Creator);
