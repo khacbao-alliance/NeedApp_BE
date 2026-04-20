@@ -13,16 +13,18 @@ public class NotificationService(
     INotificationHubService notificationHubService,
     IEmailService emailService,
     IUserRepository userRepository,
+    IEmailPreferenceRepository emailPreferenceRepository,
     IUnitOfWork unitOfWork,
     ILogger<NotificationService> logger) : INotificationService
 {
-    // Only these types trigger an email
+    // Only these types trigger an email (subject to user preferences)
     private static readonly HashSet<NotificationType> EmailTypes =
     [
         NotificationType.StatusChange,
         NotificationType.MissingInfo,
         NotificationType.Assignment,
-        NotificationType.Invitation
+        NotificationType.Invitation,
+        NotificationType.NewRequest
     ];
 
     public async Task NotifyAsync(
@@ -68,16 +70,25 @@ public class NotificationService(
             logger.LogWarning(ex, "Failed to push notification via SignalR to user {UserId}", userId);
         }
 
-        // 3. Send email for critical types
+        // 3. Send email — check user preferences first
         if (EmailTypes.Contains(type))
         {
             try
             {
                 var user = await userRepository.GetByIdAsync(userId, cancellationToken);
-                if (user != null)
+                if (user != null && await IsEmailEnabledForType(userId, type, cancellationToken))
                 {
-                    await emailService.SendNotificationEmailAsync(
-                        user.Email, user.Name, title, content, cancellationToken);
+                    // Use specialized template for Assignment
+                    if (type == NotificationType.Assignment && referenceId.HasValue)
+                    {
+                        await emailService.SendRequestAssignedEmailAsync(
+                            user.Email, user.Name, title, referenceId.Value, cancellationToken);
+                    }
+                    else
+                    {
+                        await emailService.SendNotificationEmailAsync(
+                            user.Email, user.Name, title, content, cancellationToken);
+                    }
                 }
             }
             catch (Exception ex)
@@ -139,17 +150,31 @@ public class NotificationService(
             }
         }
 
-        // 3. Send emails in parallel (pure I/O, no DbContext contention)
+        // 3. Send emails — check preferences, use specialized templates
         if (EmailTypes.Contains(type))
         {
             try
             {
                 var users = await userRepository.FindAsync(u => distinctUserIds.Contains(u.Id), cancellationToken);
+                var preferences = await emailPreferenceRepository.GetByUserIdsAsync(distinctUserIds, cancellationToken);
+                var prefMap = preferences.ToDictionary(p => p.UserId);
+
                 var emailTasks = users.Select(async user =>
                 {
                     try
                     {
-                        await emailService.SendNotificationEmailAsync(user.Email, user.Name, title, content, cancellationToken);
+                        if (!IsEmailEnabledForType(prefMap.GetValueOrDefault(user.Id), type))
+                            return;
+
+                        if (type == NotificationType.Assignment && referenceId.HasValue)
+                        {
+                            await emailService.SendRequestAssignedEmailAsync(
+                                user.Email, user.Name, title, referenceId.Value, cancellationToken);
+                        }
+                        else
+                        {
+                            await emailService.SendNotificationEmailAsync(user.Email, user.Name, title, content, cancellationToken);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -163,5 +188,29 @@ public class NotificationService(
                 logger.LogWarning(ex, "Failed to load users for notification emails");
             }
         }
+    }
+
+    /// <summary>Check if a user has enabled email for a specific notification type (async version for single user).</summary>
+    private async Task<bool> IsEmailEnabledForType(Guid userId, NotificationType type, CancellationToken cancellationToken)
+    {
+        var pref = await emailPreferenceRepository.GetByUserIdAsync(userId, cancellationToken);
+        return IsEmailEnabledForType(pref, type);
+    }
+
+    /// <summary>Check preference entity (sync, used in batch). Null pref = all enabled (defaults).</summary>
+    private static bool IsEmailEnabledForType(EmailPreference? pref, NotificationType type)
+    {
+        // No preference record means all defaults = all enabled
+        if (pref == null) return true;
+
+        return type switch
+        {
+            NotificationType.Assignment => pref.OnAssignment,
+            NotificationType.StatusChange => pref.OnStatusChange,
+            NotificationType.NewRequest => pref.OnNewRequest,
+            NotificationType.MissingInfo => pref.OnStatusChange, // treat as status change
+            NotificationType.Invitation => true, // always send invitations
+            _ => true
+        };
     }
 }

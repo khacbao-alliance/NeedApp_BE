@@ -34,10 +34,11 @@ public class UpdateRequestStatusCommandHandler(
     // Define valid transitions to prevent invalid state changes
     private static readonly Dictionary<RequestStatus, RequestStatus[]> ValidTransitions = new()
     {
-        { RequestStatus.Pending, [RequestStatus.InProgress, RequestStatus.Cancelled] },
+        { RequestStatus.Intake,      [RequestStatus.Pending] }, // Staff can force-close intake
+        { RequestStatus.Pending,     [RequestStatus.InProgress, RequestStatus.Cancelled] },
         { RequestStatus.MissingInfo, [RequestStatus.InProgress, RequestStatus.Pending, RequestStatus.Cancelled] },
-        { RequestStatus.InProgress, [RequestStatus.Done, RequestStatus.MissingInfo, RequestStatus.Pending, RequestStatus.Cancelled] },
-        { RequestStatus.Done, [RequestStatus.InProgress] }, // Re-open
+        { RequestStatus.InProgress,  [RequestStatus.Done, RequestStatus.MissingInfo, RequestStatus.Pending, RequestStatus.Cancelled] },
+        { RequestStatus.Done,        [RequestStatus.InProgress] }, // Re-open
     };
 
     public async Task<RequestDto> Handle(UpdateRequestStatusCommand command, CancellationToken cancellationToken)
@@ -112,7 +113,9 @@ public class UpdateRequestStatusCommandHandler(
             messageCount,
             !detailed.Client.IsDeleted,
             detailed.CreatedAt,
-            detailed.UpdatedAt
+            detailed.UpdatedAt,
+            detailed.DueDate,
+            detailed.IsOverdue
         );
     }
 }

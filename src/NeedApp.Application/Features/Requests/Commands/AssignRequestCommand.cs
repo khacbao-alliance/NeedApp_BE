@@ -41,9 +41,9 @@ public class AssignRequestCommandHandler(
         var request = await requestRepository.GetByIdAsync(command.RequestId, cancellationToken)
             ?? throw new NotFoundException(nameof(Request), command.RequestId);
 
-        // Cannot assign during Draft or Intake phase — must reach Pending first
-        if (request.Status is RequestStatus.Draft or RequestStatus.Intake)
-            throw new DomainException("Cannot assign staff while request is in Draft or Intake phase. Wait until the intake is complete.");
+        // Cannot assign during Draft phase — no request content yet
+        if (request.Status is RequestStatus.Draft)
+            throw new DomainException("Cannot assign staff while request is in Draft phase.");
 
         // Validate that the target user exists and is Staff or Admin
         var staffUser = await userRepository.GetByIdAsync(command.StaffUserId, cancellationToken)
@@ -77,7 +77,8 @@ public class AssignRequestCommandHandler(
         request.UpdatedAt = DateTime.UtcNow;
         request.UpdatedBy = userId;
 
-        // Auto-transition to InProgress when staff accepts the request
+        // Auto-transition to InProgress when staff accepts (only from Pending/MissingInfo).
+        // During Intake, the request stays in Intake — it transitions naturally when all questions are answered.
         if (request.Status is RequestStatus.Pending or RequestStatus.MissingInfo)
         {
             request.Status = RequestStatus.InProgress;
@@ -169,7 +170,9 @@ public class AssignRequestCommandHandler(
             messageCount,
             !detailed.Client.IsDeleted,
             detailed.CreatedAt,
-            detailed.UpdatedAt
+            detailed.UpdatedAt,
+            detailed.DueDate,
+            detailed.IsOverdue
         );
     }
 }

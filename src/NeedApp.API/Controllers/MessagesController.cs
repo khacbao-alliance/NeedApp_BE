@@ -25,6 +25,22 @@ public class MessagesController(IMediator mediator) : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Search messages within a request by keyword (Vietnamese diacritics-insensitive).
+    /// </summary>
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchMessages(
+        Guid requestId,
+        [FromQuery] string q = "",
+        [FromQuery] int limit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await mediator.Send(
+            new SearchMessagesQuery(requestId, q, limit),
+            cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPost]
     public async Task<IActionResult> SendMessage(
         Guid requestId,

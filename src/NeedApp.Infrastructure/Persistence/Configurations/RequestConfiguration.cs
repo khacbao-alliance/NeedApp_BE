@@ -19,15 +19,20 @@ public class RequestConfiguration : IEntityTypeConfiguration<Request>
         builder.Property(x => x.Priority).HasColumnName("priority");
         builder.Property(x => x.IntakeQuestionSetId).HasColumnName("intake_question_set_id");
         builder.Property(x => x.IntakeProgress).HasColumnName("intake_progress");
+        builder.Property(x => x.DueDate).HasColumnName("due_date");
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
         builder.Property(x => x.CreatedBy).HasColumnName("created_by");
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at");
         builder.Property(x => x.UpdatedBy).HasColumnName("updated_by");
         builder.Property(x => x.IsDeleted).HasColumnName("is_deleted");
 
+        // Ignore computed property — not persisted
+        builder.Ignore(x => x.IsOverdue);
+
         builder.HasIndex(x => x.ClientId).HasDatabaseName("idx_requests_client");
         builder.HasIndex(x => x.Status).HasDatabaseName("idx_requests_status");
         builder.HasIndex(x => x.AssignedTo).HasDatabaseName("idx_requests_assigned_to");
+        builder.HasIndex(x => x.DueDate).HasDatabaseName("idx_requests_due_date");
         builder.HasQueryFilter(x => !x.IsDeleted);
 
         builder.HasOne(x => x.Client).WithMany(c => c.Requests).HasForeignKey(x => x.ClientId);

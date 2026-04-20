@@ -56,7 +56,7 @@ public class SendMessageCommandHandler(
             {
                 var clientUser = await clientUserRepository.GetByUserIdAsync(userId, cancellationToken);
                 if (clientUser == null || clientUser.ClientId != request.ClientId)
-                    throw new UnauthorizedException("You are not a member of the client that owns this request.");
+                    throw new ForbiddenException("You are not a member of the client that owns this request.");
 
                 // Auto-join as Observer on first message
                 await participantRepository.AddAsync(new RequestParticipant
@@ -68,7 +68,7 @@ public class SendMessageCommandHandler(
             }
             else
             {
-                throw new UnauthorizedException("You are not a participant of this request.");
+                throw new ForbiddenException("You are not a participant of this request.");
             }
         }
 
@@ -280,7 +280,7 @@ public class DeleteMessageCommandHandler(
 
         var userId = currentUserService.UserId;
         if (message.SenderId != userId)
-            throw new UnauthorizedException("You can only delete your own messages.");
+            throw new ForbiddenException("You can only delete your own messages.");
 
         message.IsDeleted = true;
         messageRepository.Update(message);

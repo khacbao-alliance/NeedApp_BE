@@ -28,4 +28,10 @@ public interface IMessageRepository : IRepository<Message>
     Task<List<Message>> GetAllByRequestIdAsync(
         Guid requestId,
         CancellationToken cancellationToken = default);
+
+    Task<List<Message>> SearchAsync(
+        Guid requestId,
+        string query,
+        int limit = 50,
+        CancellationToken cancellationToken = default);
 }

@@ -22,6 +22,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<MessageReaction> MessageReactions => Set<MessageReaction>();
     public DbSet<MessageReadReceipt> MessageReadReceipts => Set<MessageReadReceipt>();
+    public DbSet<SlaConfig> SlaConfigs => Set<SlaConfig>();
+    public DbSet<EmailPreference> EmailPreferences => Set<EmailPreference>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -12,7 +12,14 @@ public record GetRequestsQuery(
     int PageSize = 10,
     string? Search = null,
     RequestStatus? Status = null,
-    RequestPriority? Priority = null
+    RequestPriority? Priority = null,
+    // ── Advanced filters ──
+    Guid? AssignedTo = null,
+    Guid? ClientId = null,
+    DateTime? DateFrom = null,
+    DateTime? DateTo = null,
+    bool? IsOverdue = null,
+    string? SortBy = null
 ) : IRequest<PaginatedResult<RequestDto>>;
 
 public class GetRequestsQueryHandler(
@@ -44,6 +51,12 @@ public class GetRequestsQueryHandler(
             userId,
             userRole,
             currentClientId,
+            request.AssignedTo,
+            request.ClientId,
+            request.DateFrom,
+            request.DateTo,
+            request.IsOverdue,
+            request.SortBy,
             cancellationToken);
 
         var requestList = items.ToList();
@@ -69,7 +82,9 @@ public class GetRequestsQueryHandler(
             messageCounts.GetValueOrDefault(r.Id, 0),
             r.Client != null && !r.Client.IsDeleted,
             r.CreatedAt,
-            r.UpdatedAt
+            r.UpdatedAt,
+            r.DueDate,
+            r.IsOverdue
         ));
 
         return PaginatedResult<RequestDto>.Create(dtos, totalCount, request.Page, request.PageSize);

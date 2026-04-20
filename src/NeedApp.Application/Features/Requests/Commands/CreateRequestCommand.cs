@@ -12,7 +12,7 @@ using NeedApp.Domain.Interfaces;
 
 namespace NeedApp.Application.Features.Requests.Commands;
 
-public record CreateRequestCommand(string Title, string? Description, RequestPriority Priority = RequestPriority.Medium) : IRequest<CreateRequestResponse>;
+public record CreateRequestCommand(string Title, string? Description, RequestPriority Priority = RequestPriority.Medium, DateTime? DueDate = null) : IRequest<CreateRequestResponse>;
 
 public class CreateRequestCommandValidator : AbstractValidator<CreateRequestCommand>
 {
@@ -31,6 +31,7 @@ public class CreateRequestCommandHandler(
     ICurrentUserService currentUserService,
     IUserRepository userRepository,
     INotificationService notificationService,
+    ISlaConfigRepository slaConfigRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateRequestCommand, CreateRequestResponse>
 {
     public async Task<CreateRequestResponse> Handle(CreateRequestCommand command, CancellationToken cancellationToken)
@@ -48,6 +49,27 @@ public class CreateRequestCommandHandler(
         var questionSet = await intakeRepo.GetDefaultAsync(cancellationToken)
             ?? await intakeRepo.GetFirstActiveAsync(cancellationToken);
 
+        // Auto-calculate DueDate from Priority if not explicitly specified
+        DateTime dueDate;
+        if (command.DueDate.HasValue)
+        {
+            dueDate = command.DueDate.Value;
+        }
+        else
+        {
+            // Try database config first, fallback to hardcoded defaults
+            var slaConfig = await slaConfigRepository.GetByPriorityAsync(command.Priority, cancellationToken);
+            var deadlineHours = slaConfig?.DeadlineHours ?? command.Priority switch
+            {
+                RequestPriority.Urgent => 4,
+                RequestPriority.High   => 24,
+                RequestPriority.Medium => 72,
+                RequestPriority.Low    => 168, // 7 days
+                _                      => 72
+            };
+            dueDate = DateTime.UtcNow.AddHours(deadlineHours);
+        }
+
         var request = new Request
         {
             Title = command.Title,
@@ -57,6 +79,7 @@ public class CreateRequestCommandHandler(
             Priority = command.Priority,
             IntakeQuestionSetId = questionSet?.Id,
             IntakeProgress = 0,
+            DueDate = dueDate,
             CreatedBy = userId
         };
 

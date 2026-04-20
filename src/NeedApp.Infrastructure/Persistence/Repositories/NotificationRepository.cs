@@ -45,4 +45,12 @@ public class NotificationRepository(AppDbContext context)
             .Select(g => new { g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Key, x => x.Count, cancellationToken);
     }
+
+    public async Task<Notification?> GetByUserAndReferenceAsync(
+        Guid userId, Guid referenceId, string referenceType,
+        CancellationToken cancellationToken = default)
+        => await Context.Notifications.AsNoTracking()
+            .Where(n => n.UserId == userId && n.ReferenceId == referenceId && n.ReferenceType == referenceType)
+            .OrderByDescending(n => n.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
 }

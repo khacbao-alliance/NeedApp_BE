@@ -70,6 +70,8 @@ public static class DependencyInjection
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IInvitationRepository, InvitationRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<ISlaConfigRepository, SlaConfigRepository>();
+        services.AddScoped<IEmailPreferenceRepository, EmailPreferenceRepository>();
 
         // Services
         services.AddScoped<IJwtService, JwtService>();
@@ -79,6 +81,10 @@ public static class DependencyInjection
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<IGeminiService, GeminiService>();
         services.AddScoped<INotificationService, NotificationService>();
+
+        // Background services
+        services.AddHostedService<OverdueAlertService>();
+        services.AddHostedService<EmailDigestService>();
 
         // Authentication
         var jwtSettings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()!;

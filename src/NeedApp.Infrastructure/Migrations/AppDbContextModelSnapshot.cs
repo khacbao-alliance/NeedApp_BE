@@ -24,6 +24,7 @@ namespace NeedApp.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "audit_action", new[] { "insert", "update", "delete" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "client_role", new[] { "owner", "member" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "digest_frequency", new[] { "none", "daily", "weekly" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "invitation_status", new[] { "pending", "accepted", "declined" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "message_type", new[] { "text", "file", "system", "missing_info", "intake_question", "intake_answer" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "notification_type", new[] { "new_message", "missing_info", "status_change", "assignment", "new_request", "invitation" });
@@ -173,6 +174,53 @@ namespace NeedApp.Infrastructure.Migrations
                         .HasDatabaseName("idx_client_users_unique");
 
                     b.ToTable("client_users", (string)null);
+                });
+
+            modelBuilder.Entity("NeedApp.Domain.Entities.EmailPreference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("DigestFrequency")
+                        .HasColumnType("integer")
+                        .HasColumnName("digest_frequency");
+
+                    b.Property<DateTime?>("LastDigestSentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_digest_sent_at");
+
+                    b.Property<bool>("OnAssignment")
+                        .HasColumnType("boolean")
+                        .HasColumnName("on_assignment");
+
+                    b.Property<bool>("OnNewRequest")
+                        .HasColumnType("boolean")
+                        .HasColumnName("on_new_request");
+
+                    b.Property<bool>("OnOverdue")
+                        .HasColumnType("boolean")
+                        .HasColumnName("on_overdue");
+
+                    b.Property<bool>("OnStatusChange")
+                        .HasColumnType("boolean")
+                        .HasColumnName("on_status_change");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("email_preferences", (string)null);
                 });
 
             modelBuilder.Entity("NeedApp.Domain.Entities.FileAttachment", b =>
@@ -650,6 +698,10 @@ namespace NeedApp.Infrastructure.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_date");
+
                     b.Property<int>("IntakeProgress")
                         .HasColumnType("integer")
                         .HasColumnName("intake_progress");
@@ -691,6 +743,9 @@ namespace NeedApp.Infrastructure.Migrations
 
                     b.HasIndex("ClientId")
                         .HasDatabaseName("idx_requests_client");
+
+                    b.HasIndex("DueDate")
+                        .HasDatabaseName("idx_requests_due_date");
 
                     b.HasIndex("IntakeQuestionSetId");
 
@@ -737,6 +792,39 @@ namespace NeedApp.Infrastructure.Migrations
                         .HasDatabaseName("idx_request_participants_unique");
 
                     b.ToTable("request_participants", (string)null);
+                });
+
+            modelBuilder.Entity("NeedApp.Domain.Entities.SlaConfig", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<double>("DeadlineHours")
+                        .HasColumnType("double precision")
+                        .HasColumnName("deadline_hours");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<RequestPriority>("Priority")
+                        .HasColumnType("request_priority")
+                        .HasColumnName("priority");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Priority")
+                        .IsUnique()
+                        .HasDatabaseName("idx_sla_configs_priority");
+
+                    b.ToTable("sla_configs", (string)null);
                 });
 
             modelBuilder.Entity("NeedApp.Domain.Entities.User", b =>
@@ -828,6 +916,17 @@ namespace NeedApp.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Client");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("NeedApp.Domain.Entities.EmailPreference", b =>
+                {
+                    b.HasOne("NeedApp.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });
