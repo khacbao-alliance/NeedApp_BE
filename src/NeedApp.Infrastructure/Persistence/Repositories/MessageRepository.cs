@@ -18,6 +18,7 @@ public class MessageRepository(AppDbContext context)
             .Include(m => m.Sender)
             .Include(m => m.Files)
             .Include(m => m.Reactions)
+            .Include(m => m.ReplyTo).ThenInclude(r => r!.Sender)
             .AsQueryable();
 
         // Apply cursor filter BEFORE ordering for better query plan

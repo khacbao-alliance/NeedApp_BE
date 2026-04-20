@@ -19,6 +19,9 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
         builder.Property(x => x.ReplyToId).HasColumnName("reply_to_id");
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
         builder.Property(x => x.IsDeleted).HasColumnName("is_deleted");
+        builder.Property(x => x.IsEdited).HasColumnName("is_edited").HasDefaultValue(false);
+        builder.Property(x => x.EditedAt).HasColumnName("edited_at");
+        builder.Property(x => x.IsPinned).HasColumnName("is_pinned").HasDefaultValue(false);
 
         builder.HasIndex(x => new { x.RequestId, x.CreatedAt, x.Id })
             .IsDescending(false, true, true)

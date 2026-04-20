@@ -22,3 +22,4 @@ services:
       SmtpSettings__LogoUrl: ${SMTP_LOGO_URL}
       SmtpSettings__AppUrl: ${SMTP_APP_URL}
       GeminiSettings__ApiKey: ${GEMINI_API_KEY}
+      Recaptcha__SecretKey: ${RECAPTCHA__SECRET_KEY}

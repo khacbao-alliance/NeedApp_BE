@@ -74,7 +74,7 @@ public class AuthController(IMediator mediator) : ControllerBase
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
     {
-        await mediator.Send(new ForgotPasswordCommand(request.Email), cancellationToken);
+        await mediator.Send(new ForgotPasswordCommand(request.Email, request.RecaptchaToken), cancellationToken);
         return Ok(new { message = "If the email exists, a password reset OTP has been sent." });
     }
 

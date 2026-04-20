@@ -81,6 +81,31 @@ public class MessagesController(IMediator mediator) : ControllerBase
         return Ok(result);
     }
 
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> EditMessage(
+        Guid requestId,
+        Guid id,
+        [FromBody] EditMessageRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new EditMessageCommand(requestId, id, request.Content),
+            cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{messageId:guid}/pin")]
+    public async Task<IActionResult> PinMessage(
+        Guid requestId,
+        Guid messageId,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new PinMessageCommand(requestId, messageId),
+            cancellationToken);
+        return Ok(result);
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteMessage(
         Guid requestId,
@@ -121,3 +146,4 @@ public class MessagesController(IMediator mediator) : ControllerBase
 }
 
 public record ToggleReactionRequest(string Emoji);
+public record EditMessageRequest(string Content);

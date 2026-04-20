@@ -81,6 +81,7 @@ public static class DependencyInjection
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<IGeminiService, GeminiService>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddHttpClient<IRecaptchaService, GoogleRecaptchaService>();
 
         // Background services
         services.AddHostedService<OverdueAlertService>();

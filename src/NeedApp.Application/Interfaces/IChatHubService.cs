@@ -32,4 +32,14 @@ public interface IChatHubService
     /// Notify all participants that a user has read up to a given timestamp.
     /// </summary>
     Task SendMessageRead(Guid requestId, Guid userId, DateTime lastReadAt);
+
+    /// <summary>
+    /// Notify participants that a message was edited (content updated).
+    /// </summary>
+    Task SendMessageEdited(Guid requestId, MessageDto message);
+
+    /// <summary>
+    /// Notify participants that a message was pinned or unpinned.
+    /// </summary>
+    Task SendMessagePinned(Guid requestId, Guid messageId, bool isPinned);
 }

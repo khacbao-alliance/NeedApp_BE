@@ -73,7 +73,11 @@ public class GetMessagesQueryHandler(
             m.CreatedAt,
             m.Reactions.Count > 0
                 ? m.Reactions.GroupBy(r => r.Emoji).Select(g => new ReactionSummaryDto(g.Key, g.Count(), g.Select(r => r.UserId).ToList())).ToList()
-                : null
+                : null,
+            m.ReplyTo != null ? new MessageReplyDto(m.ReplyTo.Id, m.ReplyTo.Content, m.ReplyTo.Sender?.Name) : null,
+            m.IsEdited,
+            m.EditedAt,
+            m.IsPinned
         )).ToList();
 
         // Load read receipts for this request (one per user)

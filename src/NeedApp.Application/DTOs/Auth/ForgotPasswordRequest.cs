@@ -1,3 +1,3 @@
 namespace NeedApp.Application.DTOs.Auth;
 
-public record ForgotPasswordRequest(string Email);
+public record ForgotPasswordRequest(string Email, string RecaptchaToken);
