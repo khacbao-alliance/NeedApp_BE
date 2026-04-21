@@ -9,7 +9,7 @@ namespace NeedApp.Infrastructure.Services;
 
 /// <summary>
 /// Background service that sends daily/weekly digest emails.
-/// Checks every hour; sends Daily at 8 AM UTC, Weekly on Monday 8 AM UTC.
+/// Checks every hour; sends Daily at 8 AM ICT (1 AM UTC), Weekly on Monday 8 AM ICT.
 /// </summary>
 public class EmailDigestService(
     IServiceScopeFactory scopeFactory,
@@ -27,14 +27,14 @@ public class EmailDigestService(
             {
                 var now = DateTime.UtcNow;
 
-                // Daily digest at 8 AM UTC (±30 min window)
-                if (now.Hour == 8)
+                // Daily digest at 8 AM ICT = 1 AM UTC
+                if (now.Hour == 1)
                 {
                     await SendDigestsAsync(DigestFrequency.Daily, "hàng ngày", stoppingToken);
                 }
 
-                // Weekly digest on Monday at 8 AM UTC
-                if (now.Hour == 8 && now.DayOfWeek == DayOfWeek.Monday)
+                // Weekly digest on Monday at 8 AM ICT = 1 AM UTC
+                if (now.Hour == 1 && now.DayOfWeek == DayOfWeek.Monday)
                 {
                     await SendDigestsAsync(DigestFrequency.Weekly, "hàng tuần", stoppingToken);
                 }
