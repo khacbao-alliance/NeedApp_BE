@@ -15,36 +15,53 @@ public class EmailDigestService(
     IServiceScopeFactory scopeFactory,
     ILogger<EmailDigestService> logger) : BackgroundService
 {
-    private static readonly TimeSpan Interval = TimeSpan.FromHours(1);
+
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        logger.LogInformation("EmailDigestService started");
+        logger.LogInformation("EmailDigestService started. Current UTC: {UtcNow}", DateTime.UtcNow);
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            // Calculate exact delay until next 10 AM ICT (UTC+7) = 3 AM UTC
+            var now = DateTime.UtcNow;
+            var nextRun = new DateTime(now.Year, now.Month, now.Day, 3, 0, 0, DateTimeKind.Utc);
+            // If 1 AM UTC today has already passed, schedule for tomorrow
+            if (now >= nextRun)
+                nextRun = nextRun.AddDays(1);
+
+            var delay = nextRun - now;
+            logger.LogInformation(
+                "EmailDigestService: next run at {NextRun} UTC (in {Hours:F1}h)",
+                nextRun, delay.TotalHours);
+
             try
             {
-                var now = DateTime.UtcNow;
+                await Task.Delay(delay, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
 
-                // Daily digest at 8 AM ICT = 1 AM UTC
-                if (now.Hour == 1)
-                {
-                    await SendDigestsAsync(DigestFrequency.Daily, "hàng ngày", stoppingToken);
-                }
+            // Fire digests
+            try
+            {
+                var fireTime = DateTime.UtcNow;
 
-                // Weekly digest on Monday at 8 AM ICT = 1 AM UTC
-                if (now.Hour == 1 && now.DayOfWeek == DayOfWeek.Monday)
+                // Daily digest — every day at 8 AM ICT
+                await SendDigestsAsync(DigestFrequency.Daily, "hàng ngày", stoppingToken);
+
+                // Weekly digest — every Monday at 8 AM ICT
+                if (fireTime.DayOfWeek == DayOfWeek.Monday)
                 {
                     await SendDigestsAsync(DigestFrequency.Weekly, "hàng tuần", stoppingToken);
                 }
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error in EmailDigestService");
+                logger.LogError(ex, "Error in EmailDigestService during send");
             }
-
-            await Task.Delay(Interval, stoppingToken);
         }
     }
 
