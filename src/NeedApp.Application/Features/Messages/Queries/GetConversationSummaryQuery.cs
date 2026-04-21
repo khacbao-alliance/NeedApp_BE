@@ -46,10 +46,8 @@ public class GetConversationSummaryQueryHandler(
         var intakeSummary = BuildIntakeSummary(messages);
 
         // --- Build Missing Info Requests ---
+        // --- Build Missing Info Requests ---
         var missingInfoRequests = BuildMissingInfoSummary(messages);
-
-        // --- Build Conversation Highlights ---
-        var conversationHighlights = BuildConversationHighlights(messages);
 
         // --- Build Attachments ---
         var attachments = BuildAttachments(messages);
@@ -74,7 +72,6 @@ public class GetConversationSummaryQueryHandler(
             overview,
             intakeSummary,
             missingInfoRequests,
-            conversationHighlights,
             attachments,
             aiSummary,
             DateTime.UtcNow
@@ -167,26 +164,7 @@ public class GetConversationSummaryQueryHandler(
         }).ToList();
     }
 
-    private static List<ConversationHighlightDto> BuildConversationHighlights(List<Domain.Entities.Message> messages)
-    {
-        return messages
-            .Where(m => m.Type == MessageType.Text && m.SenderId.HasValue && m.Sender != null)
-            .GroupBy(m => m.SenderId!.Value)
-            .Select(g =>
-            {
-                var sender = g.First().Sender!;
-                // Take the 5 most recent text messages per sender
-                var recentMessages = g
-                    .OrderByDescending(m => m.CreatedAt)
-                    .Take(5)
-                    .OrderBy(m => m.CreatedAt)
-                    .Select(m => new MessageHighlightDto(m.Content, m.CreatedAt))
-                    .ToList();
 
-                return new ConversationHighlightDto(sender.Name, sender.Role, recentMessages);
-            })
-            .ToList();
-    }
 
     private static List<AttachmentSummaryDto> BuildAttachments(List<Domain.Entities.Message> messages)
     {
@@ -195,6 +173,7 @@ public class GetConversationSummaryQueryHandler(
             .Select(x => new AttachmentSummaryDto(
                 x.File.Id,
                 x.File.FileName,
+                x.File.Url,
                 x.File.ContentType,
                 x.File.FileSize,
                 x.Message.Sender?.Name,

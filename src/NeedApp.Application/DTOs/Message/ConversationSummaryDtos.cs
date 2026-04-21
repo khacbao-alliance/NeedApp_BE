@@ -9,7 +9,6 @@ public record ConversationSummaryDto(
     ConversationOverviewDto Overview,
     IntakeSummaryDto? IntakeSummary,
     List<MissingInfoSummaryDto> MissingInfoRequests,
-    List<ConversationHighlightDto> ConversationHighlights,
     List<AttachmentSummaryDto> Attachments,
     string? AiSummary,
     DateTime GeneratedAt
@@ -51,20 +50,10 @@ public record MissingInfoSummaryDto(
     bool IsResolved
 );
 
-public record ConversationHighlightDto(
-    string? SenderName,
-    UserRole? SenderRole,
-    List<MessageHighlightDto> RecentMessages
-);
-
-public record MessageHighlightDto(
-    string? Content,
-    DateTime SentAt
-);
-
 public record AttachmentSummaryDto(
     Guid Id,
     string FileName,
+    string FileUrl,
     string? ContentType,
     long? FileSize,
     string? UploadedBy,
