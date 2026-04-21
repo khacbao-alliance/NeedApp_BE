@@ -7,6 +7,7 @@ pipeline {
         GG_CHAT_WEBHOOK = 'https://chat.googleapis.com/v1/spaces/AAQAyJg5xoU/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=bPFiBiw7I06p8wFaPtA0Jr300iUTinPept8BH77KAik'
         JENKINS_URL_PUBLIC = 'http://42.119.236.229:9090'
         CONTAINER_NAME = 'needapp-api'
+        APP_VERSION = '1.0'
     }
 
     triggers {
