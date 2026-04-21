@@ -60,6 +60,7 @@ pipeline {
                     -d '{"text": "📦 *[3/4] Deploy container...*"}'
                 """
                 dir(PROJECT_DIR) {
+                    sh 'docker compose -f ${COMPOSE_FILE} down --remove-orphans 2>/dev/null || true'
                     sh 'docker compose -f ${COMPOSE_FILE} up -d'
                 }
             }
