@@ -78,7 +78,7 @@ pipeline {
                     for i in $(seq 1 12); do
                         STATUS=$(docker inspect --format="{{.State.Status}}" ${CONTAINER_NAME} 2>/dev/null || echo "not_found")
                         if [ "$STATUS" = "running" ]; then
-                            HTTP_CODE=$(docker exec ${CONTAINER_NAME} curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health 2>/dev/null)
+                            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://host.docker.internal:8081/health 2>/dev/null)
                             if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "404" ]; then
                                 echo "Container is running (HTTP $HTTP_CODE)"
                                 exit 0
