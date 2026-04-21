@@ -140,9 +140,23 @@ public class SendMessageCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        MessageReplyDto? replyTo = null;
+        if (command.ReplyToId.HasValue)
+        {
+            var replyMsg = await messageRepository.GetByIdAsync(command.ReplyToId.Value, cancellationToken);
+            if (replyMsg != null)
+            {
+                var replySender = replyMsg.SenderId.HasValue
+                    ? await userRepository.GetByIdAsync(replyMsg.SenderId.Value, cancellationToken)
+                    : null;
+                replyTo = new MessageReplyDto(replyMsg.Id, replyMsg.Content, replySender?.Name);
+            }
+        }
+
         var messageDto = new MessageDto(
             message.Id, message.Type, message.Content,
-            senderDto, null, message.ReplyToId, [], message.CreatedAt);
+            senderDto, null, message.ReplyToId, [], message.CreatedAt,
+            ReplyTo: replyTo);
 
         // Push via SignalR for real-time chat (not intake — intake is sequential/REST)
         if (command.Type == MessageType.Text || command.Type == MessageType.File)
@@ -256,6 +270,116 @@ public class SendMissingInfoCommandHandler(
                 new MissingInfoMetadata(request.Title, command.Content),
                 cancellationToken);
         }
+
+        return messageDto;
+    }
+}
+
+// --- Edit Message ---
+public record EditMessageCommand(Guid RequestId, Guid MessageId, string Content) : IRequest<MessageDto>;
+
+public class EditMessageCommandValidator : AbstractValidator<EditMessageCommand>
+{
+    public EditMessageCommandValidator()
+    {
+        RuleFor(x => x.Content).NotEmpty().MaximumLength(10000);
+    }
+}
+
+public class EditMessageCommandHandler(
+    IMessageRepository messageRepository,
+    IUserRepository userRepository,
+    ICurrentUserService currentUserService,
+    IChatHubService chatHubService,
+    IUnitOfWork unitOfWork) : IRequestHandler<EditMessageCommand, MessageDto>
+{
+    private static readonly TimeSpan EditWindow = TimeSpan.FromMinutes(15);
+
+    public async Task<MessageDto> Handle(EditMessageCommand command, CancellationToken cancellationToken)
+    {
+        var userId = currentUserService.UserId
+            ?? throw new UnauthorizedException("User not authenticated.");
+
+        var message = await messageRepository.GetByIdAsync(command.MessageId, cancellationToken)
+            ?? throw new NotFoundException(nameof(Message), command.MessageId);
+
+        if (message.RequestId != command.RequestId)
+            throw new DomainException("Message does not belong to this request.");
+
+        if (message.SenderId != userId)
+            throw new ForbiddenException("You can only edit your own messages.");
+
+        if (message.Type != MessageType.Text && message.Type != MessageType.IntakeAnswer)
+            throw new DomainException("Only text messages and intake answers can be edited.");
+
+        if (message.IsDeleted)
+            throw new DomainException("Cannot edit a deleted message.");
+
+        if (DateTime.UtcNow - message.CreatedAt > EditWindow)
+            throw new DomainException("Messages can only be edited within 15 minutes of sending.");
+
+        message.Content = command.Content;
+        message.IsEdited = true;
+        message.EditedAt = DateTime.UtcNow;
+
+        messageRepository.Update(message);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var sender = await userRepository.GetByIdAsync(userId, cancellationToken);
+        var senderDto = sender != null
+            ? new MessageSenderDto(sender.Id, sender.Name, sender.Role, sender.AvatarUrl)
+            : new MessageSenderDto(userId, null, null, null);
+
+        var messageDto = new MessageDto(
+            message.Id, message.Type, message.Content, senderDto, null,
+            message.ReplyToId, [], message.CreatedAt, null, null,
+            message.IsEdited, message.EditedAt, message.IsPinned);
+
+        await chatHubService.SendMessageEdited(command.RequestId, messageDto);
+
+        return messageDto;
+    }
+}
+
+// --- Pin Message ---
+public record PinMessageCommand(Guid RequestId, Guid MessageId) : IRequest<MessageDto>;
+
+public class PinMessageCommandHandler(
+    IMessageRepository messageRepository,
+    IUserRepository userRepository,
+    ICurrentUserService currentUserService,
+    IChatHubService chatHubService,
+    IUnitOfWork unitOfWork) : IRequestHandler<PinMessageCommand, MessageDto>
+{
+    public async Task<MessageDto> Handle(PinMessageCommand command, CancellationToken cancellationToken)
+    {
+        var userId = currentUserService.UserId
+            ?? throw new UnauthorizedException("User not authenticated.");
+
+        var message = await messageRepository.GetByIdAsync(command.MessageId, cancellationToken)
+            ?? throw new NotFoundException(nameof(Message), command.MessageId);
+
+        if (message.RequestId != command.RequestId)
+            throw new DomainException("Message does not belong to this request.");
+
+        if (message.IsDeleted)
+            throw new DomainException("Cannot pin a deleted message.");
+
+        message.IsPinned = !message.IsPinned;
+
+        messageRepository.Update(message);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var sender = message.Sender != null
+            ? new MessageSenderDto(message.Sender.Id, message.Sender.Name, message.Sender.Role, message.Sender.AvatarUrl)
+            : (message.SenderId.HasValue ? new MessageSenderDto(message.SenderId.Value, null, null, null) : null);
+
+        var messageDto = new MessageDto(
+            message.Id, message.Type, message.Content, sender, null,
+            message.ReplyToId, [], message.CreatedAt, null, null,
+            message.IsEdited, message.EditedAt, message.IsPinned);
+
+        await chatHubService.SendMessagePinned(command.RequestId, command.MessageId, message.IsPinned);
 
         return messageDto;
     }

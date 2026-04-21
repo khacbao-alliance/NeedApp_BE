@@ -11,8 +11,15 @@ public record MessageDto(
     Guid? ReplyToId,
     List<FileAttachmentDto> Files,
     DateTime CreatedAt,
-    List<ReactionSummaryDto>? Reactions = null
+    List<ReactionSummaryDto>? Reactions = null,
+    MessageReplyDto? ReplyTo = null,
+    bool IsEdited = false,
+    DateTime? EditedAt = null,
+    bool IsPinned = false
 );
+
+/// <summary>Snapshot of a replied-to message shown in the reply preview bubble.</summary>
+public record MessageReplyDto(Guid Id, string? Content, string? SenderName);
 
 public record ReactionSummaryDto(string Emoji, int Count, List<Guid> UserIds);
 

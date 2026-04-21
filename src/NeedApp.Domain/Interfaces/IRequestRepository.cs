@@ -21,8 +21,8 @@ public interface IRequestRepository : IRepository<Request>
         // ── Advanced filters ──
         Guid? assignedTo = null,
         Guid? clientId = null,
-        DateTime? dateFrom = null,
-        DateTime? dateTo = null,
+        DateOnly? dateFrom = null,
+        DateOnly? dateTo = null,
         bool? isOverdue = null,
         string? sortBy = null,
         CancellationToken cancellationToken = default);

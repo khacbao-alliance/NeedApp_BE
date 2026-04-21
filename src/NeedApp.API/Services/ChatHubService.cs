@@ -45,4 +45,18 @@ public class ChatHubService(IHubContext<ChatHub> hubContext) : IChatHubService
             .Group(ChatHub.GetGroupName(requestId))
             .SendAsync("MessageRead", new { requestId, userId, lastReadAt });
     }
+
+    public async Task SendMessageEdited(Guid requestId, MessageDto message)
+    {
+        await hubContext.Clients
+            .Group(ChatHub.GetGroupName(requestId))
+            .SendAsync("MessageEdited", message);
+    }
+
+    public async Task SendMessagePinned(Guid requestId, Guid messageId, bool isPinned)
+    {
+        await hubContext.Clients
+            .Group(ChatHub.GetGroupName(requestId))
+            .SendAsync("MessagePinned", new { requestId, messageId, isPinned });
+    }
 }

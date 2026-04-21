@@ -432,7 +432,7 @@ public class EmailService(IOptions<SmtpSettings> smtpOptions, ILogger<EmailServi
                                                         <td style="font-family:'Segoe UI',Roboto,Arial,sans-serif;">
                                                             <p style="margin:0;font-size:10px;font-weight:600;color:#991b1b;text-transform:uppercase;letter-spacing:1px;">QUÁ HẠN</p>
                                                             <p style="margin:4px 0 0;font-size:17px;font-weight:700;color:#991b1b;line-height:1.4;">{requestTitle}</p>
-                                                            <p style="margin:6px 0 0;font-size:13px;color:#b91c1c;">Deadline: {dueDate:dd/MM/yyyy HH:mm} UTC</p>
+                                                            <p style="margin:6px 0 0;font-size:13px;color:#b91c1c;">Deadline: {dueDate:dd/MM/yyyy HH:mm} UTC +7</p>
                                                         </td>
                                                     </tr>
                                                 </table>

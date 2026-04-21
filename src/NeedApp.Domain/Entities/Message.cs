@@ -13,6 +13,9 @@ public class Message : BaseEntity
     public JsonDocument? Metadata { get; set; }
     public Guid? ReplyToId { get; set; }
     public bool IsDeleted { get; set; } = false;
+    public bool IsEdited { get; set; } = false;
+    public DateTime? EditedAt { get; set; }
+    public bool IsPinned { get; set; } = false;
 
     public Request Request { get; set; } = default!;
     public User? Sender { get; set; }
