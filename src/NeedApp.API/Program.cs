@@ -66,6 +66,7 @@ builder.Services.AddScoped<INotificationHubService, NotificationHubService>();
 
 // SignalR
 builder.Services.AddSignalR();
+builder.Services.AddHealthChecks();
 
 // CORS — must allow credentials for SignalR WebSocket
 builder.Services.AddCors(options =>
@@ -109,6 +110,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Map SignalR Hub
+app.MapHealthChecks("/health");
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<NotificationHub>("/hubs/notifications");
 
