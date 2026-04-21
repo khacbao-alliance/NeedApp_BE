@@ -29,9 +29,10 @@ pipeline {
         stage('Sync Code') {
             steps {
                 sh """
+                    MSG=\$(git log -1 --pretty=%s | cut -c1-60)
                     curl -s -X POST '${GG_CHAT_WEBHOOK}' \
                     -H 'Content-Type: application/json' \
-                    -d '{"text": "🔄 *[1/4] Sync Code...*\\nCommit: ${GIT_COMMIT.take(7)} - ${GIT_COMMIT_MESSAGE?.take(60) ?: 'N/A'}"}'
+                    -d "{\\"text\\": \\"🔄 *[1/4] Sync Code...*\\\\nCommit: ${GIT_COMMIT.take(7)} - \$MSG\\"}"
                 """
                 sh 'docker rm -f ${CONTAINER_NAME} 2>/dev/null || true'
                 sh 'tar cf - --exclude=.git --exclude=.env -C $WORKSPACE . | tar xf - -C $PROJECT_DIR'
