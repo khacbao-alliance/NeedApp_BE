@@ -80,6 +80,7 @@ builder.Services.AddCors(options =>
                 "https://need-app-fe.vercel.app",
                 "https://needapp-dev.allianceitsc.com",
                 "https://needapp.allianceitsc.com"
+
             )
             .AllowAnyMethod()
             .AllowAnyHeader()
