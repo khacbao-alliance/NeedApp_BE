@@ -93,39 +93,69 @@ public class SendMessageCommandHandler(
         request.UpdatedBy = userId;
         requestRepository.Update(request);
 
-        // Handle intake answer flow
+        // ── Duplicate-answer guard (applies at ANY status) ─────────────────
+        // Prevent double-submit: if an IntakeAnswer already exists for this question, discard.
+        if (command.Type == MessageType.IntakeAnswer && command.ReplyToId.HasValue)
+        {
+            var existingForQuestion = await messageRepository.GetByTypeAsync(request.Id, MessageType.IntakeAnswer, cancellationToken);
+            var alreadyAnswered = existingForQuestion.Any(a => a.ReplyToId == command.ReplyToId);
+            if (alreadyAnswered)
+            {
+                // Discard the duplicate silently — optimistic UI will reconcile with next poll
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+                return new MessageDto(message.Id, message.Type, message.Content, senderDto, null, message.ReplyToId, [], message.CreatedAt);
+            }
+        }
+        // ───────────────────────────────────────────────────────────────────
+
+        // Handle intake completion check (only relevant during Intake status)
         if (command.Type == MessageType.IntakeAnswer && request.Status == RequestStatus.Intake && request.IntakeQuestionSetId.HasValue)
         {
-            request.IntakeProgress++;
-
             var questionSet = await intakeRepo.GetWithQuestionsAsync(request.IntakeQuestionSetId.Value, cancellationToken);
             if (questionSet != null)
             {
-                var questions = questionSet.Questions.OrderBy(q => q.OrderIndex).ToList();
-                if (request.IntakeProgress < questions.Count)
+                var requiredQuestions = questionSet.Questions.Where(q => q.IsRequired).ToList();
+                
+                // Get all existing answers to see if we're done
+                var existingAnswers = await messageRepository.GetByTypeAsync(request.Id, MessageType.IntakeAnswer, cancellationToken);
+                
+                // +1 to account for the current message being added
+                request.IntakeProgress = existingAnswers.Count() + 1;
+
+                var answeredQuestionMessageIds = existingAnswers
+                    .Where(a => a.ReplyToId.HasValue)
+                    .Select(a => a.ReplyToId!.Value)
+                    .ToHashSet();
+
+                if (command.ReplyToId.HasValue)
                 {
-                    // Post next question
-                    var next = questions[request.IntakeProgress];
-                    var nextMsg = new Message
-                    {
-                        RequestId = request.Id,
-                        Type = MessageType.IntakeQuestion,
-                        Content = next.Content,
-                        Metadata = JsonSerializer.SerializeToDocument(new
-                        {
-                            questionId = next.Id,
-                            orderIndex = next.OrderIndex,
-                            isRequired = next.IsRequired,
-                            placeholder = next.Placeholder,
-                            totalQuestions = questions.Count,
-                            currentQuestion = request.IntakeProgress + 1
-                        })
-                    };
-                    await messageRepository.AddAsync(nextMsg, cancellationToken);
+                    answeredQuestionMessageIds.Add(command.ReplyToId.Value);
                 }
-                else
+
+                var questionMessages = await messageRepository.GetByTypeAsync(request.Id, MessageType.IntakeQuestion, cancellationToken);
+                
+                bool allRequiredAnswered = true;
+                foreach (var rq in requiredQuestions)
                 {
-                    // All questions answered → status changes to Pending
+                    var qMsg = questionMessages.FirstOrDefault(m => 
+                    {
+                        if (string.IsNullOrEmpty(m.Metadata?.ToString())) return false;
+                        try {
+                            var doc = JsonSerializer.Deserialize<JsonElement>(m.Metadata.ToString()!);
+                            return doc.TryGetProperty("questionId", out var idProp) && idProp.GetGuid() == rq.Id;
+                        } catch { return false; }
+                    });
+
+                    if (qMsg != null && !answeredQuestionMessageIds.Contains(qMsg.Id))
+                    {
+                        allRequiredAnswered = false;
+                        break;
+                    }
+                }
+
+                if (allRequiredAnswered)
+                {
+                    // All required questions answered → status changes to Pending
                     request.Status = RequestStatus.Pending;
                     var doneMsg = new Message
                     {
@@ -158,25 +188,27 @@ public class SendMessageCommandHandler(
             senderDto, null, message.ReplyToId, [], message.CreatedAt,
             ReplyTo: replyTo);
 
-        // Push via SignalR for real-time chat (not intake — intake is sequential/REST)
-        if (command.Type == MessageType.Text || command.Type == MessageType.File)
+        // Push via SignalR and notify participants for all user-generated messages
+        if (command.Type == MessageType.Text || command.Type == MessageType.File || command.Type == MessageType.IntakeAnswer)
         {
             await chatHubService.SendMessageToRequest(command.RequestId, messageDto);
 
-            // Notify other participants about new message
+            // Notify other participants about new message / intake answer
             var participants = await participantRepository.GetByRequestIdAsync(command.RequestId, cancellationToken);
             var otherUserIds = participants.Where(p => p.UserId != userId).Select(p => p.UserId);
+            var notificationBody = command.Content?.Length > 100 ? command.Content[..100] + "..." : command.Content ?? "";
+            var notificationTitle = command.Type == MessageType.IntakeAnswer
+                ? $"Câu trả lời mới trong \"{request.Title}\""
+                : $"Tin nhắn mới trong \"{request.Title}\"";
+
             await notificationService.NotifyMultipleAsync(
                 otherUserIds,
                 Domain.Enums.NotificationType.NewMessage,
-                $"Tin nhắn mới trong \"{request.Title}\"",
-                command.Content?.Length > 100 ? command.Content[..100] + "..." : command.Content ?? "",
+                notificationTitle,
+                notificationBody,
                 command.RequestId,
                 "Request",
-                new NewMessageMetadata(
-                    request.Title,
-                    command.Content?.Length > 100 ? command.Content[..100] + "..." : command.Content ?? ""
-                ),
+                new NewMessageMetadata(request.Title, notificationBody),
                 cancellationToken);
         }
 
@@ -288,9 +320,13 @@ public class EditMessageCommandValidator : AbstractValidator<EditMessageCommand>
 
 public class EditMessageCommandHandler(
     IMessageRepository messageRepository,
+    IMessageEditHistoryRepository historyRepository,
     IUserRepository userRepository,
     ICurrentUserService currentUserService,
     IChatHubService chatHubService,
+    INotificationService notificationService,
+    IRequestRepository requestRepository,
+    IRequestParticipantRepository participantRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<EditMessageCommand, MessageDto>
 {
     private static readonly TimeSpan EditWindow = TimeSpan.FromMinutes(15);
@@ -315,8 +351,20 @@ public class EditMessageCommandHandler(
         if (message.IsDeleted)
             throw new DomainException("Cannot edit a deleted message.");
 
-        if (DateTime.UtcNow - message.CreatedAt > EditWindow)
+        // Enforce 15-minute edit window only for regular Text messages.
+        // IntakeAnswer messages can be edited at any time during the intake phase.
+        if (message.Type == MessageType.Text && DateTime.UtcNow - message.CreatedAt > EditWindow)
             throw new DomainException("Messages can only be edited within 15 minutes of sending.");
+
+        // Snapshot the current content into edit history before overwriting
+        var historyEntry = new MessageEditHistory
+        {
+            MessageId = message.Id,
+            PreviousContent = message.Content ?? string.Empty,
+            EditedAt = DateTime.UtcNow,
+            EditedBy = userId
+        };
+        await historyRepository.AddAsync(historyEntry, cancellationToken);
 
         message.Content = command.Content;
         message.IsEdited = true;
@@ -337,9 +385,49 @@ public class EditMessageCommandHandler(
 
         await chatHubService.SendMessageEdited(command.RequestId, messageDto);
 
+        // ── Notify other participants when an IntakeAnswer is edited ──────
+        if (message.Type == MessageType.IntakeAnswer)
+        {
+            var request = await requestRepository.GetByIdAsync(command.RequestId, cancellationToken);
+            if (request != null)
+            {
+                var participants = await participantRepository.GetByRequestIdAsync(command.RequestId, cancellationToken);
+                var otherUserIds = participants.Where(p => p.UserId != userId).Select(p => p.UserId);
+
+                // Build a short preview of the question being answered
+                string questionPreview = "";
+                if (message.ReplyToId.HasValue)
+                {
+                    var questionMsg = await messageRepository.GetByIdAsync(message.ReplyToId.Value, cancellationToken);
+                    if (questionMsg != null)
+                    {
+                        questionPreview = questionMsg.Content?.Length > 60
+                            ? questionMsg.Content[..60] + "..."
+                            : questionMsg.Content ?? "";
+                    }
+                }
+
+                var editorName = sender?.Name ?? "Client";
+                var notificationTitle = $"Câu trả lời intake đã được sửa trong \"{request.Title}\"";
+                var notificationBody = command.Content.Length > 100 ? command.Content[..100] + "..." : command.Content;
+
+                await notificationService.NotifyMultipleAsync(
+                    otherUserIds,
+                    Domain.Enums.NotificationType.IntakeAnswerEdited,
+                    notificationTitle,
+                    notificationBody,
+                    command.RequestId,
+                    "Request",
+                    new IntakeAnswerEditedMetadata(request.Title, questionPreview, editorName),
+                    cancellationToken);
+            }
+        }
+        // ──────────────────────────────────────────────────────────────────
+
         return messageDto;
     }
 }
+
 
 // --- Pin Message ---
 public record PinMessageCommand(Guid RequestId, Guid MessageId) : IRequest<MessageDto>;

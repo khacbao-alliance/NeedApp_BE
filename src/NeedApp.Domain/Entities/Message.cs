@@ -23,4 +23,5 @@ public class Message : BaseEntity
     public ICollection<Message> Replies { get; set; } = [];
     public ICollection<FileAttachment> Files { get; set; } = [];
     public ICollection<MessageReaction> Reactions { get; set; } = [];
+    public ICollection<MessageEditHistory> EditHistory { get; set; } = [];
 }

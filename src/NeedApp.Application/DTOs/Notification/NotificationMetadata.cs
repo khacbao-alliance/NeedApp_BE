@@ -44,3 +44,10 @@ public sealed record InvitationMetadata(
     [property: JsonPropertyName("inviterName")] string InviterName,
     [property: JsonPropertyName("role")] string Role
 );
+
+/// <summary>Client edited an intake answer; staff should be notified.</summary>
+public sealed record IntakeAnswerEditedMetadata(
+    [property: JsonPropertyName("requestTitle")] string RequestTitle,
+    [property: JsonPropertyName("questionPreview")] string QuestionPreview,
+    [property: JsonPropertyName("editorName")] string EditorName
+);

@@ -59,3 +59,9 @@ public record MessageListResponse(
     List<ReadReceiptDto>? Readers = null
 );
 
+public record MessageEditHistoryDto(
+    Guid Id,
+    string PreviousContent,
+    DateTime EditedAt,
+    string? EditedByName
+);

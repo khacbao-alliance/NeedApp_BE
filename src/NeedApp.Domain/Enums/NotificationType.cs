@@ -7,5 +7,6 @@ public enum NotificationType
     StatusChange,
     Assignment,
     NewRequest,
-    Invitation
+    Invitation,
+    IntakeAnswerEdited
 }
