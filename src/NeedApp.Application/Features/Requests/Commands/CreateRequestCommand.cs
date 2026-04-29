@@ -101,31 +101,39 @@ public class CreateRequestCommandHandler(
             Content = $"Request \"{command.Title}\" has been created."
         }, cancellationToken);
 
-        // If we have intake questions, post the first one
+        // If we have intake questions, post ALL of them at once to allow form-like answering
         MessageDto? firstQuestion = null;
         if (questionSet?.Questions.Any() == true)
         {
-            var first = questionSet.Questions.OrderBy(q => q.OrderIndex).First();
-            var msg = new Message
-            {
-                RequestId = request.Id,
-                Type = MessageType.IntakeQuestion,
-                Content = first.Content,
-                Metadata = JsonSerializer.SerializeToDocument(new
-                {
-                    questionId = first.Id,
-                    orderIndex = first.OrderIndex,
-                    isRequired = first.IsRequired,
-                    placeholder = first.Placeholder,
-                    totalQuestions = questionSet.Questions.Count
-                })
-            };
-            await messageRepository.AddAsync(msg, cancellationToken);
+            var orderedQuestions = questionSet.Questions.OrderBy(q => q.OrderIndex).ToList();
+            var totalQuestions = orderedQuestions.Count;
 
-            firstQuestion = new MessageDto(
-                msg.Id, msg.Type, msg.Content, null,
-                JsonSerializer.Deserialize<object>(msg.Metadata!),
-                null, [], msg.CreatedAt);
+            foreach (var q in orderedQuestions)
+            {
+                var msg = new Message
+                {
+                    RequestId = request.Id,
+                    Type = MessageType.IntakeQuestion,
+                    Content = q.Content,
+                    Metadata = JsonSerializer.SerializeToDocument(new
+                    {
+                        questionId = q.Id,
+                        orderIndex = q.OrderIndex,
+                        isRequired = q.IsRequired,
+                        placeholder = q.Placeholder,
+                        totalQuestions = totalQuestions
+                    })
+                };
+                await messageRepository.AddAsync(msg, cancellationToken);
+
+                if (firstQuestion == null)
+                {
+                    firstQuestion = new MessageDto(
+                        msg.Id, msg.Type, msg.Content, null,
+                        JsonSerializer.Deserialize<object>(msg.Metadata!),
+                        null, [], msg.CreatedAt);
+                }
+            }
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

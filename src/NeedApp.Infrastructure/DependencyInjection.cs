@@ -72,6 +72,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<ISlaConfigRepository, SlaConfigRepository>();
         services.AddScoped<IEmailPreferenceRepository, EmailPreferenceRepository>();
+        services.AddScoped<IMessageEditHistoryRepository, MessageEditHistoryRepository>();
 
         // Services
         services.AddScoped<IJwtService, JwtService>();
