@@ -59,4 +59,11 @@ public class ChatHubService(IHubContext<ChatHub> hubContext) : IChatHubService
             .Group(ChatHub.GetGroupName(requestId))
             .SendAsync("MessagePinned", new { requestId, messageId, isPinned });
     }
+
+    public async Task SendReactionToggled(Guid requestId, Guid messageId, string emoji, int count, List<Guid> userIds)
+    {
+        await hubContext.Clients
+            .Group(ChatHub.GetGroupName(requestId))
+            .SendAsync("ReactionToggled", new { requestId, messageId, emoji, count, userIds });
+    }
 }

@@ -14,6 +14,7 @@ public class ToggleReactionCommandHandler(
     IRepository<Message> messageRepository,
     IRepository<MessageReaction> reactionRepository,
     ICurrentUserService currentUserService,
+    IChatHubService chatHubService,
     IUnitOfWork unitOfWork) : IRequestHandler<ToggleReactionCommand, ToggleReactionResponse>
 {
     public async Task<ToggleReactionResponse> Handle(ToggleReactionCommand command, CancellationToken cancellationToken)
@@ -50,12 +51,21 @@ public class ToggleReactionCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // Get updated count for this emoji on this message
+        // Get updated reaction data for this emoji on this message
         var reactions = await reactionRepository.FindAsync(
             r => r.MessageId == command.MessageId && r.Emoji == command.Emoji,
             cancellationToken);
+        var reactionList = reactions.ToList();
 
-        return new ToggleReactionResponse(added, command.Emoji, reactions.Count());
+        // Broadcast reaction update to all participants via SignalR
+        await chatHubService.SendReactionToggled(
+            message.RequestId,
+            command.MessageId,
+            command.Emoji,
+            reactionList.Count,
+            reactionList.Select(r => r.UserId).ToList());
+
+        return new ToggleReactionResponse(added, command.Emoji, reactionList.Count);
     }
 }
 
