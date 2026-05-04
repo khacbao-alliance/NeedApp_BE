@@ -222,7 +222,130 @@ public class SendMessageCommandHandler(
     }
 }
 
-// --- Send Missing Info ---
+// --- Answer Missing Info Question ---
+public record AnswerMissingInfoCommand(Guid RequestId, Guid MessageId, string QuestionId, string Answer) : IRequest<MessageDto>;
+
+public class AnswerMissingInfoCommandValidator : AbstractValidator<AnswerMissingInfoCommand>
+{
+    public AnswerMissingInfoCommandValidator()
+    {
+        RuleFor(x => x.RequestId).NotEmpty();
+        RuleFor(x => x.MessageId).NotEmpty();
+        RuleFor(x => x.QuestionId).NotEmpty();
+        RuleFor(x => x.Answer).NotEmpty().MaximumLength(5000);
+    }
+}
+
+public class AnswerMissingInfoCommandHandler(
+    IMessageRepository messageRepository,
+    IRequestRepository requestRepository,
+    IUserRepository userRepository,
+    ICurrentUserService currentUserService,
+    IChatHubService chatHubService,
+    IUnitOfWork unitOfWork) : IRequestHandler<AnswerMissingInfoCommand, MessageDto>
+{
+    public async Task<MessageDto> Handle(AnswerMissingInfoCommand command, CancellationToken cancellationToken)
+    {
+        var userId = currentUserService.UserId
+            ?? throw new UnauthorizedException("User not authenticated.");
+
+        var message = await messageRepository.GetByIdAsync(command.MessageId, cancellationToken)
+            ?? throw new NotFoundException(nameof(Message), command.MessageId);
+
+        if (message.RequestId != command.RequestId)
+            throw new DomainException("Message does not belong to this request.");
+
+        if (message.Type != MessageType.MissingInfo)
+            throw new DomainException("This message is not a Missing Info request.");
+
+        // Parse existing metadata (JsonDocument type)
+        if (message.Metadata == null)
+            throw new DomainException("Missing Info message has no metadata.");
+        var doc = message.Metadata.RootElement;
+
+        if (!doc.TryGetProperty("questions", out var questionsEl))
+            throw new DomainException("Missing Info message has no questions.");
+
+        // Rebuild questions with the answer applied
+        var questions = new List<object>();
+        bool found = false;
+        bool allAnswered = true;
+
+        foreach (var q in questionsEl.EnumerateArray())
+        {
+            var id = q.GetProperty("id").GetString()!;
+            var questionText = q.GetProperty("question").GetString()!;
+            var answered = q.TryGetProperty("answered", out var aProp) && aProp.GetBoolean();
+            var existingAnswer = q.TryGetProperty("answer", out var ansProp) ? ansProp.GetString() : null;
+
+            if (id == command.QuestionId)
+            {
+                found = true;
+                questions.Add(new { id, question = questionText, answered = true, answer = command.Answer });
+            }
+            else
+            {
+                if (existingAnswer != null)
+                    questions.Add(new { id, question = questionText, answered, answer = existingAnswer });
+                else
+                    questions.Add(new { id, question = questionText, answered });
+
+                if (!answered) allAnswered = false;
+            }
+        }
+
+        if (!found)
+            throw new NotFoundException("Question", command.QuestionId);
+
+        // Update metadata
+        var newMetadata = JsonSerializer.SerializeToDocument(new { questions });
+        message.Metadata = newMetadata;
+        message.IsEdited = true;
+        message.EditedAt = DateTime.UtcNow;
+        messageRepository.Update(message);
+
+        // If all questions are now answered, transition status to InProgress
+        // (Staff was already working on this request before requesting more info)
+        var request = await requestRepository.GetByIdAsync(command.RequestId, cancellationToken);
+        if (request != null && allAnswered && request.Status == RequestStatus.MissingInfo)
+        {
+            request.Status = RequestStatus.InProgress;
+            request.UpdatedAt = DateTime.UtcNow;
+            request.UpdatedBy = userId;
+            requestRepository.Update(request);
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Build response
+        var sender = message.SenderId.HasValue
+            ? await userRepository.GetByIdAsync(message.SenderId.Value, cancellationToken)
+            : null;
+        var senderDto = sender != null
+            ? new MessageSenderDto(sender.Id, sender.Name, sender.Role, sender.AvatarUrl)
+            : null;
+
+        var messageDto = new MessageDto(
+            message.Id, message.Type, message.Content,
+            senderDto,
+            JsonSerializer.Deserialize<object>(newMetadata),
+            message.ReplyToId, [], message.CreatedAt,
+            IsEdited: message.IsEdited, EditedAt: message.EditedAt);
+
+        // Push updated message via SignalR
+        await chatHubService.SendMessageEdited(command.RequestId, messageDto);
+
+        // If status changed, push that too
+        if (request != null && allAnswered && request.Status == RequestStatus.InProgress)
+        {
+            await chatHubService.SendRequestStatusChanged(command.RequestId, request.Status.ToString());
+        }
+
+        return messageDto;
+    }
+}
+
+
 public record SendMissingInfoCommand(Guid RequestId, string Content, List<string> Questions) : IRequest<MessageDto>;
 
 public class SendMissingInfoCommandValidator : AbstractValidator<SendMissingInfoCommand>
@@ -327,6 +450,7 @@ public class EditMessageCommandHandler(
     INotificationService notificationService,
     IRequestRepository requestRepository,
     IRequestParticipantRepository participantRepository,
+    IClientUserRepository clientUserRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<EditMessageCommand, MessageDto>
 {
     private static readonly TimeSpan EditWindow = TimeSpan.FromMinutes(15);
@@ -342,8 +466,28 @@ public class EditMessageCommandHandler(
         if (message.RequestId != command.RequestId)
             throw new DomainException("Message does not belong to this request.");
 
+        // For IntakeAnswer: allow the sender, assigned staff, OR client of the request to edit.
+        // For other message types: only the sender can edit.
         if (message.SenderId != userId)
-            throw new ForbiddenException("You can only edit your own messages.");
+        {
+            if (message.Type == MessageType.IntakeAnswer)
+            {
+                var request = await requestRepository.GetByIdAsync(command.RequestId, cancellationToken);
+                var isAssignedStaff = request?.AssignedTo == userId;
+                var isRequestClient = false;
+                if (currentUserService.UserRole == UserRole.Client && request != null)
+                {
+                    var clientUser = await clientUserRepository.GetByUserIdAsync(userId, cancellationToken);
+                    isRequestClient = clientUser != null && clientUser.ClientId == request.ClientId;
+                }
+                if (!isAssignedStaff && !isRequestClient)
+                    throw new ForbiddenException("You can only edit your own messages.");
+            }
+            else
+            {
+                throw new ForbiddenException("You can only edit your own messages.");
+            }
+        }
 
         if (message.Type != MessageType.Text && message.Type != MessageType.IntakeAnswer)
             throw new DomainException("Only text messages and intake answers can be edited.");

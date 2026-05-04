@@ -42,4 +42,9 @@ public interface IChatHubService
     /// Notify participants that a message was pinned or unpinned.
     /// </summary>
     Task SendMessagePinned(Guid requestId, Guid messageId, bool isPinned);
+
+    /// <summary>
+    /// Notify participants that a reaction was toggled on a message.
+    /// </summary>
+    Task SendReactionToggled(Guid requestId, Guid messageId, string emoji, int count, List<Guid> userIds);
 }
