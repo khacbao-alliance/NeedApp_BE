@@ -117,6 +117,22 @@ public class MessagesController(IMediator mediator) : ControllerBase
     }
 
     /// <summary>
+    /// Get the edit history of a message (previous versions, newest first).
+    /// Accessible by all participants of the request.
+    /// </summary>
+    [HttpGet("{messageId:guid}/history")]
+    public async Task<IActionResult> GetMessageHistory(
+        Guid requestId,
+        Guid messageId,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetMessageHistoryQuery(requestId, messageId),
+            cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Toggle an emoji reaction on a message (add/remove).
     /// </summary>
     [HttpPost("{messageId:guid}/reactions")]
@@ -143,7 +159,23 @@ public class MessagesController(IMediator mediator) : ControllerBase
         await mediator.Send(new MarkReadCommand(requestId), cancellationToken);
         return NoContent();
     }
+    /// <summary>
+    /// Answer an individual Missing Info question. Accessible by Client and Staff.
+    /// </summary>
+    [HttpPost("{messageId:guid}/answer-missing-info")]
+    public async Task<IActionResult> AnswerMissingInfo(
+        Guid requestId,
+        Guid messageId,
+        [FromBody] AnswerMissingInfoRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new AnswerMissingInfoCommand(requestId, messageId, request.QuestionId, request.Answer),
+            cancellationToken);
+        return Ok(result);
+    }
 }
 
 public record ToggleReactionRequest(string Emoji);
 public record EditMessageRequest(string Content);
+public record AnswerMissingInfoRequest(string QuestionId, string Answer);
